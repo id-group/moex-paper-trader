@@ -8,7 +8,7 @@
 
 ## Прочитать до начала
 
-1. `AGENTS.md`, `ARCHITECTURE.md` — разделы 4, 8, 9 (ADR-5, ADR-10).
+1. `AGENTS.md`, `docs/ARCHITECTURE.md` — разделы 4, 8, 9 (ADR-5, ADR-10).
 2. `docs/bcs-api/http/portfolio.md` + `limits.md` (встроенные схемы) — форма ответа.
 3. Код этапа 2 (`bks/adapter`, `core/domain`) — расширять, не ломая контракт.
 
@@ -25,7 +25,7 @@
 - `infra`: `repository/` (Spring Data JPA: orders, fills, positions, nav, accounts),
   `model/` (сущности БД), `mapper/` (MapStruct: сущность ↔ домен core), `services/`
   (оркестрация: сохранение/загрузка + вызов чистой логики core); миграции (Flyway —
-  подтвердить выбор в отчёте); таблицы по черновику ARCHITECTURE.md §9.
+  подтвердить выбор в отчёте); таблицы по черновику docs/ARCHITECTURE.md §9.
 - Подключение к `bks/adapter`: portfolio/limits собираются из реального снапшота.
 
 ## Явно НЕ делать

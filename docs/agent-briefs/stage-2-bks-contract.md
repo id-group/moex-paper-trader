@@ -10,7 +10,7 @@
 ## Прочитать до начала (обязательно)
 
 1. `AGENTS.md` — правила, окружение (JAVA_HOME!), запреты.
-2. `ARCHITECTURE.md` — разделы 2, 3, 5 (ADR-4…ADR-7).
+2. `docs/ARCHITECTURE.md` — разделы 2, 3, 5 (ADR-4…ADR-7).
 3. `docs/bcs-api/README.md` — состав снапшота.
 4. Страницы снапшота по своим эндпоинтам + sidecar-схемы `*.RequestSchema.json`,
    `*.StatusCodes.json`, `*.ParamsDetails.json` — **единственный источник правды о полях DTO**.

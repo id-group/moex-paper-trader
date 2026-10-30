@@ -27,6 +27,8 @@ repositories {
 // с dependency-management импортирует spring-boot-dependencies автоматически).
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Мониторинг: health и метрики через /actuator/** (AGENTS.md, docs/ARCHITECTURE.md §11).
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     // ArchUnit — формальный контроль архитектурных правил из AGENTS.md (core без Spring и т.д.).

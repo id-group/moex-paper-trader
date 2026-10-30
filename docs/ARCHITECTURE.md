@@ -2,8 +2,8 @@
 
 Документ фиксирует архитектурные решения (ADR) эмулятора брокера. Нормативные правила для
 агентов и стек (включая Actuator, Lombok, MapStruct, JaCoCo) — в `AGENTS.md`, здесь не
-дублируются. Контракт БКС — в `docs/bcs-api/` (полный: страницы + sidecar-схемы
-`*.RequestSchema.json` / `*.StatusCodes.json` / `*.ParamsDetails.json`).
+дублируются; инварианты-принципы 1–7 — тоже там (AGENTS.md, §3), здесь — только их
+обоснования (ADR-2, ADR-3, ADR-5, ADR-8, ADR-9, §8).
 
 Заметки по инструментам стека: Lombok и MapStruct подключаются как annotation processors
 (нужны версии с поддержкой JDK 25 и связка `lombok-mapstruct-binding`); JaCoCo контролирует
@@ -18,6 +18,11 @@
 режиме REPLAY сверяется с бэктестом (целевое расхождение метрик < 30%).
 
 Ключевое требование: добавление нового брокера (Т-Банк, Алор, Финам) — дешёвая операция.
+
+**Котировки и информация о торгах:**
+AlgoPack (https://moexalgo.github.io/) и MOEX ISS (https://iss.moex.ru).
+Контракт брокера: снапшот документации в `docs/bcs-api/` — источник истины для DTO
+(правила работы с ним — skill `bcs-contract`).
 
 ## 2. Общая схема: порты и адаптеры (гексагональная архитектура)
 
@@ -34,7 +39,7 @@
               │        services (PostgreSQL 18, JPA, MapStruct) │
               │        algoapi (AlgoPack / MOEX ISS)            │
               └─────────────────────────────────────────────────┘
-      корневой пакет ru.moex.papertrader — точка сборки (Application, конфигурация, /health)
+      корневой пакет ru.moex.papertrader — точка сборки (Application, конфигурация)
 ```
 
 **ADR-1. Один Gradle-проект, слои — пакеты.** Модули не используются (решение владельца);
@@ -55,7 +60,7 @@
 ## 3. Структура пакетов
 
 ```text
-ru.moex.papertrader   # корень: BrokerEmulatorApplication, Spring-конфигурация, /health
+ru.moex.papertrader   # корень: BrokerEmulatorApplication, Spring-конфигурация
 ├── core/
 │   ├── domain/      # Instrument, Order, Fill, Position, PortfolioSnapshot и VO
 │   ├── portfolio/   # учёт кэша/позиций, ГО и вариационная маржа, NAV
@@ -194,10 +199,4 @@ core). Зависимость односторонняя: `infra → core`, ко
 
 ## 12. Этапы реализации
 
-1. ✅ Скелет single-project (сборка, /health, ArchUnit, Spotless) — готово
-2. Контракт БКС: DTO/контроллеры/авторизация поверх заглушек core — `docs/agent-briefs/stage-2-bks-contract.md`
-3. Домен + виртуальный портфель + БД — `docs/agent-briefs/stage-3-portfolio.md`
-4. Рыночные данные LIVE/RECORD/REPLAY — `docs/agent-briefs/stage-4-marketdata.md`
-5. Модель исполнения — `docs/agent-briefs/stage-5-execution.md`
-6. Отчётность и метрики — `docs/agent-briefs/stage-6-reporting.md`
-7. Интеграционный прогон, сверка с бэктестом — `docs/agent-briefs/stage-7-integration.md`
+Порядок и границы этапов — в `docs/roadmap.md`; статусы — в `docs/progress.md`.

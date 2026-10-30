@@ -8,7 +8,7 @@
 
 ## Прочитать до начала
 
-1. `AGENTS.md`, `ARCHITECTURE.md` — раздел 10.
+1. `AGENTS.md`, `docs/ARCHITECTURE.md` — раздел 10.
 2. Код `core/reporting` (порт), `core/portfolio` (nav_daily), `core/execution` (fills),
    таблицы БД этапа 3.
 

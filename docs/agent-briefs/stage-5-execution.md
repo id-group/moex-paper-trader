@@ -9,7 +9,7 @@
 ## Прочитать до начала
 
 1. `AGENTS.md` — принцип №6 (модель проскальзывания — НЕ упрощать без согласия владельца).
-2. `ARCHITECTURE.md` — раздел 7 (ADR-9).
+2. `docs/ARCHITECTURE.md` — раздел 7 (ADR-9).
 3. Код `core/execution` (порт), `core/marketdata` (стакан/сделки/ADV), `core/portfolio`
    (комиссии, блокировки), `bks/adapter` (как ордера попадают в core).
 

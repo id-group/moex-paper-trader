@@ -18,9 +18,13 @@
 | Документ | Содержание |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | стек, окружение, структура пакетов, конвенции, правила — основной рабочий документ |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | целевая архитектура, решения (ADR), этапы реализации |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | целевая архитектура, решения (ADR) |
+| [`docs/roadmap.md`](docs/roadmap.md) | этапы реализации (roadmap) |
+| [`docs/progress.md`](docs/progress.md) | статус и прогресс по этапам |
+| [`docs/plan.md`](docs/plan.md) | текущий план работ |
+| [`docs/temporary-decisions.md`](docs/temporary-decisions.md) | временные решения и условия их пересмотра |
 | [`docs/agent-briefs/`](docs/agent-briefs/) | брифы для агентов-реализаторов (этапы 2–7) |
 | [`docs/bcs-api/`](docs/bcs-api/) | полный снапшот контракта БКС Trade API (страницы + JSON-схемы) |
 
 Сборка, запуск и тесты — см. `AGENTS.md` (разделы «Окружение» и «Команды»): сервис на
-http://localhost:8080, health check `GET /health`.
+http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).

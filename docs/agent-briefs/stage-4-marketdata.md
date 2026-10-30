@@ -7,7 +7,7 @@
 
 ## Прочитать до начала
 
-1. `AGENTS.md`, `ARCHITECTURE.md` — раздел 6 (ADR-8).
+1. `AGENTS.md`, `docs/ARCHITECTURE.md` — раздел 6 (ADR-8).
 2. Документация AlgoPack: https://moexalgo.github.io/ (эндпоинты, авторизация `X-AlgoPack-Token`,
    форматы: все сделки, стакан, свечи, история) и MOEX ISS: https://iss.moex.ru/iss/reference/
    (свечи, справочник, расписание).
