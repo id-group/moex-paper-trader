@@ -1,0 +1,294 @@
+{
+  "responses": {
+    "200": {
+      "description": "OK",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "clientOrderId": {
+                "type": "string",
+                "description": "Уникальный идентификатор заявки"
+              },
+              "originalClientOrderId": {
+                "type": "string",
+                "description": "Уникальный идентификатор заявки, который вы сгенерировали при ее подаче"
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "messageType": {
+                    "type": "string",
+                    "description": "Тип сообщения"
+                  },
+                  "orderStatus": {
+                    "type": "string",
+                    "enum": [
+                      "0",
+                      "1",
+                      "2",
+                      "4",
+                      "5",
+                      "6",
+                      "8",
+                      "9",
+                      "10"
+                    ],
+                    "description": "Состояние заявки:<br />`0` — Новая<br />`1` — Частично исполнена<br />`2` — Полностью исполнена<br /> `4` — Отменена<br />`5` — Заменена<br /> `6` — Отменяется (в процессе отмены)<br />`8` — Отклонена<br />`9` — Заменяется (например, если вы изменяли заявку)<br />`10` — Ожидает подтверждения новой заявки"
+                  },
+                  "executionType": {
+                    "type": "string",
+                    "enum": [
+                      "0",
+                      "1",
+                      "2",
+                      "4",
+                      "5",
+                      "6",
+                      "8",
+                      "9",
+                      "10",
+                      "11",
+                      "12",
+                      "13"
+                    ],
+                    "description": "Тип отчета. Возможные значения:<br />`0` — Новая<br />`1` — Частично исполнена<br />`2` — Исполнена<br />`4` — Отменена<br />`6` — Ожидает отмены<br />`5` — Заменена<br />`8` — Отклонена<br />`9` — Приостановлена<br />`10` — Ожидает подтверждения новой<br />`11` — Сделка<br />`12` — Статус заявки<br />`13` — Исправлено"
+                  },
+                  "orderQuantity": {
+                    "type": "number",
+                    "description": "Количество в заявке (шт.)"
+                  },
+                  "executedQuantity": {
+                    "type": "number",
+                    "description": "Исполненное количество (шт.)"
+                  },
+                  "lastQuantity": {
+                    "type": "number",
+                    "description": "Количество в текущей сделке (шт.)"
+                  },
+                  "remainedQuantity": {
+                    "type": "number",
+                    "description": "Оставшееся количество (шт.)"
+                  },
+                  "ticker": {
+                    "type": "string",
+                    "description": "Тикер инструмента"
+                  },
+                  "classCode": {
+                    "type": "string",
+                    "description": "Код класса ценной бумаги. Показывает, к какому классу финансовых инструментов относится актив. Можно найти [в документации API Мосбиржи — см. таблицу Boards](https://iss.moex.com/iss/index). Например, большинство акций относятся к классу `TQBR`"
+                  },
+                  "side": {
+                    "type": "string",
+                    "enum": [
+                      "1",
+                      "2"
+                    ],
+                    "description": "`1` – Покупка<br/>`2` – Продажа"
+                  },
+                  "orderType": {
+                    "type": "string",
+                    "enum": [
+                      "1",
+                      "2"
+                    ],
+                    "description": "`1` – Рыночная заявка<br/>`2` – Лимитная заявка"
+                  },
+                  "averagePrice": {
+                    "type": "number",
+                    "description": "Средняя цена исполнения. *Для сделок РЕПО/спредов:* цена первой части."
+                  },
+                  "orderId": {
+                    "type": "string",
+                    "description": "Уникальный идентификатор заявки"
+                  },
+                  "executionId": {
+                    "type": "string",
+                    "description": "Уникальный идентификатор сделки"
+                  },
+                  "price": {
+                    "type": "number",
+                    "description": "Цена заявки"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "description": "Валюта"
+                  },
+                  "clientCode": {
+                    "type": "string",
+                    "description": "Код клиента"
+                  },
+                  "transactionTime": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Дата и время транзакции"
+                  },
+                  "tradeDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Дата сделки<br />Для вечерней сессии FORTS - дата следующей сессии<br />Обычные сделки - дата исполнения"
+                  },
+                  "orderNumber": {
+                    "type": "string",
+                    "description": "Номер заявки"
+                  },
+                  "accruedCoupon": {
+                    "type": "number",
+                    "description": "Накопленный купонный доход"
+                  },
+                  "executionValue": {
+                    "type": "number",
+                    "description": "Объем сделки"
+                  },
+                  "commission": {
+                    "type": "number",
+                    "description": "Комиссия"
+                  },
+                  "securityExchange": {
+                    "type": "string",
+                    "description": "Идентификатор биржи"
+                  },
+                  "rejectReason": {
+                    "type": "string",
+                    "description": "Причина отклонения заявки"
+                  }
+                },
+                "title": "OrderData"
+              }
+            },
+            "title": "OrderResponse"
+          }
+        }
+      }
+    },
+    "403": {
+      "description": "Forbidden",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    },
+    "429": {
+      "description": "Too Many Requests",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}

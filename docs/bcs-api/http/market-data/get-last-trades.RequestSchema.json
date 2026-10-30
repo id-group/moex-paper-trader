@@ -1,0 +1,48 @@
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "startDateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Начало периода выборки"
+            },
+            "endDateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Конец периода выборки"
+            },
+            "classCode": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Код класса ценной бумаги"
+            },
+            "ticker": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Тикер инструмента"
+            },
+            "side": {
+              "type": "string",
+              "enum": [
+                "1",
+                "2"
+              ],
+              "description": "Направление сделки<br/>`1` – Покупка<br/>`2` – Продажа"
+            }
+          },
+          "required": [
+            "classCode",
+            "ticker"
+          ],
+          "title": "LastTradesRequest"
+        }
+      }
+    },
+    "required": true
+  }
+}

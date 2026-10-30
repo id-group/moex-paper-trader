@@ -1,0 +1,52 @@
+﻿# БКС Торговое API
+
+This file contains links to documentation sections following the llmstxt.org standard.
+
+## Table of Contents
+
+- [Авторизация](https://trade-api.bcs.ru/docs/http/authorization.md): Сервис предназначен для предоставления клиенту access-токена. Перед использованием необходимо получить refresh-токен в веб-версии БКС Мир инвестици...
+- [Отменить заявку](https://trade-api.bcs.ru/docs/http/deprecated/operations/cancel.md): Запрос по данному методу позволяет отменить выставленные заявки
+- [Получение статуса заявки](https://trade-api.bcs.ru/docs/http/deprecated/operations/status.md): Получить статус созданной вами заявки
+- [Изменение заявки](https://trade-api.bcs.ru/docs/http/deprecated/operations/update.md): Запрос по данному методу позволяет изменить выставленные заявки
+- [Получение дисконтов по инструментам](https://trade-api.bcs.ru/docs/http/get-instruments-discounts.md): Получение дисконтов по инструментам
+- [Получить историю неторговых операций](https://trade-api.bcs.ru/docs/http/get-operation-history.md): Получить историю неторговых операций
+- [Получить расписание на день](https://trade-api.bcs.ru/docs/http/information/get-daily-schedule.md): Получить расписание на день
+- [Получить инструменты по ISIN](https://trade-api.bcs.ru/docs/http/information/get-instruments-by-isins.md): Получить инструменты по ISIN
+- [Получить инструменты по тикеру](https://trade-api.bcs.ru/docs/http/information/get-instruments-by-tickers.md): Получить инструменты по тикеру
+- [Получить инструменты по типу](https://trade-api.bcs.ru/docs/http/information/get-instruments-by-type-and-base-asset-ticker.md): Получить инструменты по типу
+- [Получить статусы торговли](https://trade-api.bcs.ru/docs/http/information/get-trading-status.md): Получить статусы торговли
+- [Лимиты](https://trade-api.bcs.ru/docs/http/limits.md): Получение информации о вашем портфеле через сервис «Лимиты»
+- [Исторические свечи](https://trade-api.bcs.ru/docs/http/market-data/get-candles-chart.md): Метод предназначен для получения исторических данных по инструменту.
+- [Получить обезличенные сделки](https://trade-api.bcs.ru/docs/http/market-data/get-last-trades.md): Метод предназначен для получения истории обезличенные сделок за текущую торговую сессию
+- [Получить данные по стакану](https://trade-api.bcs.ru/docs/http/market-data/get-order-book.md): Метод позволяет получить текущий стакан по инструменту
+- [Получить текущие котировки](https://trade-api.bcs.ru/docs/http/market-data/get-quotes.md): Метод позволяет получить текущие котировки по инструментам
+- [Получить список заявок](https://trade-api.bcs.ru/docs/http/operations/all-order-list.md): Метод возвращает список собственных заявок клиента.
+- [Отменить заявку](https://trade-api.bcs.ru/http/operations/cancel-order.md): Метод позволяет отменить собственную заявку по идентификатору. Поддерживаются заявки, поданные через Trade API и МИ, со статусами `0` (Новая), `1` ...
+- [Создать заявку](https://trade-api.bcs.ru/http/operations/create.md): Работает только при наличии прав для торговли. [Подробнее о правах доступа](/#права-доступа)
+- [Изменить заявку](https://trade-api.bcs.ru/http/operations/update-order.md): Метод позволяет изменить параметры собственной заявки в допустимом статусе. Изменение выполняется через отмену исходной заявки и создание новой зая...
+- [Получить статус заявки](https://trade-api.bcs.ru/docs/http/operations/get-order-by-id.md): Метод позволяет получить актуальный статус собственной заявки любого поддерживаемого типа по идентификатору. При отсутствии заявки возвращается оши...
+- [Отменить заявку](https://trade-api.bcs.ru/docs/http/operations/sync/cancel-order-sync.md): Синхронный метод дожидается результата обработки заявки и возвращает её актуальное состояние в формате ответа [получения статуса заявки](/http/oper...
+- [Создать заявку](https://trade-api.bcs.ru/docs/http/operations/sync/create-order-sync.md): Синхронный метод дожидается результата обработки заявки и возвращает её актуальное состояние в формате ответа [получения статуса заявки](/http/oper...
+- [Изменить заявку](https://trade-api.bcs.ru/docs/http/operations/sync/update-order-sync.md): Синхронный метод дожидается результата обработки заявки и возвращает её актуальное состояние в формате ответа [получения статуса заявки](/http/oper...
+- [Портфель](https://trade-api.bcs.ru/docs/http/portfolio.md): Получение информации о вашем портфеле через сервис «Портфель»
+- [Получение списка всех сделок](https://trade-api.bcs.ru/docs/http/trades/get-trades.md): Метод возвращает список собственных сделок клиента.
+- [Инструкция по использованию API. Быстрый старт](https://trade-api.bcs.ru/docs/intro.md): С помощью нашего API вы можете создать собственную программу для торговли — например, торгового робота, который сам будет отслеживать рынок и реаги...
+- [MCP сервер](https://trade-api.bcs.ru/docs/mcp.md): Model Context Protocol (MCP) — стандарт, с помощью которого ИИ-приложение (Claude, ChatGPT, Cursor и другие) обращается к внешним данным и функциям...
+- [Заблокированные активы вне биржи в БКС](https://trade-api.bcs.ru/docs/otc/bcs.md): *Cведения на вкладке «Стакан» не являются данными о торгах и отображаются для лучшего понимания спроса и предложения, формируемого другими клиентам...
+- [Торговля валютой вне биржи в БКС](https://trade-api.bcs.ru/docs/otc/currency.md): Торговля валютой вне биржи в БКС
+- [Условия внебиржевых сделок](https://trade-api.bcs.ru/docs/otc/general.md): Это сделки с ценными бумагами, которые учитывается на неторговом разделе счета депо. Сделки заключаются вне биржевых торгов на особых условиях.
+- [Заблокированные активы на Мосбирже](https://trade-api.bcs.ru/docs/otc/moex.md): Подавая заявку на покупку ценных бумаг на внебиржевом рынке, Клиент подтверждает, понимание и принимает риски его неучастия в Заявке ООО «Компания ...
+- [Ограничения](https://trade-api.bcs.ru/docs/restrictions.md): Для обеспечения стабильной работы сервисов и равномерного распределения нагрузки между клиентами, все API-вызовы
+- [Неочевидная информация по работе биржи и технических процессов](https://trade-api.bcs.ru/docs/special_info.md): ---
+- [Статус исполнения заявок](https://trade-api.bcs.ru/docs/websocket/deprecated/operations/execution-status.md): WebSocket API предоставляет обновления об **исполнении заявок** в реальном времени.
+- [Статус транзакций](https://trade-api.bcs.ru/docs/websocket/deprecated/operations/transaction-status.md): Этот WebSocket поток предоставляет обновления о **статусе созданных заявок**, включая события создания, исполнения, частичного исполнения, отмены, ...
+- [Лимиты](https://trade-api.bcs.ru/docs/websocket/limits.md): WebSocket API предоставляет **портфельные данные клиента в реальном времени**: позиции, денежные лимиты, фьючерсные данные, ГО, долговые нагрузки и...
+- [Маржинальные показатели](https://trade-api.bcs.ru/docs/websocket/marginal-indicators.md): WebSocket API позволяет получать **маржинальные показатели портфеля**, включая ГО, вармаржу, уровень риска, задолженности и устойчивость счёта в ре...
+- [Последняя свеча](https://trade-api.bcs.ru/docs/websocket/market-data/last-candle.md): Этот метод WebSocket API позволяет получать **последнюю свечу** по инструменту в режиме реального времени для заданного таймфрейма.
+- [Стакан](https://trade-api.bcs.ru/docs/websocket/market-data/order-book.md): WebSocket API позволяет получать **стакан котировок (Order Book)** в реальном времени с глубиной до 20 уровней.
+- [Котировки](https://trade-api.bcs.ru/docs/websocket/market-data/quotes.md): WebSocket API позволяет получать **котировки инструмента** в реальном времени.
+- [Обезличенные сделки](https://trade-api.bcs.ru/docs/websocket/market-data/trades.md): WebSocket API предоставляет поток **обезличенных сделок** по инструменту в реальном времени.
+- [Статус заявок](https://trade-api.bcs.ru/docs/websocket/operations/status.md): WebSocket API предоставляет обновления о статусе заявок в реальном времени.
+- [Поддержание соединения (Ping/Pong)](https://trade-api.bcs.ru/websocket/ping_pong.md): Для обеспечения стабильности WebSocket-соединения используется механизм проверки активности (heartbeat) через сообщения ping/pong.
+- [Портфель](https://trade-api.bcs.ru/docs/websocket/portfolio.md): WebSocket API предоставляет **данные о позициях портфеля**, стоимости активов, P/L, валютных остатках и блокировках в режиме реального времени.
+

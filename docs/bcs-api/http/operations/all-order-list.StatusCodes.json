@@ -1,0 +1,291 @@
+{
+  "responses": {
+    "200": {
+      "description": "OK",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "description": "Ответ со списком заявок",
+            "properties": {
+              "records": {
+                "type": "array",
+                "description": "Список заявок",
+                "items": {
+                  "type": "object",
+                  "description": "Информация о заявке",
+                  "properties": {
+                    "orderNum": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Номер заявки"
+                    },
+                    "orderId": {
+                      "type": "string",
+                      "description": "Уникальный идентификатор заявки"
+                    },
+                    "clientCode": {
+                      "type": "string",
+                      "description": "Код клиента"
+                    },
+                    "executionDateTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата и время исполнения заявки"
+                    },
+                    "executedValue": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Исполненный объем в валюте"
+                    },
+                    "orderDateTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата и время подачи заявки"
+                    },
+                    "tradeDate": {
+                      "type": "string",
+                      "format": "date",
+                      "description": "Торговая дата"
+                    },
+                    "updateDateTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата и время последнего обновления"
+                    },
+                    "ticker": {
+                      "type": "string",
+                      "description": "Тикер инструмента"
+                    },
+                    "classCode": {
+                      "type": "string",
+                      "description": "Код класса инструмента"
+                    },
+                    "takePrice": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Цена тейк-профита"
+                    },
+                    "stopPrice": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Цена стоп-лосса"
+                    },
+                    "price": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Цена заявки"
+                    },
+                    "settlementCurrency": {
+                      "type": "string",
+                      "description": "Валюта расчетов"
+                    },
+                    "orderQuantity": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Количество в заявке (в штуках)"
+                    },
+                    "remainedQuantity": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Оставшееся количество (в штуках)"
+                    },
+                    "executedQuantity": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Исполненное количество (в штуках)"
+                    },
+                    "rejectReason": {
+                      "type": "string",
+                      "description": "Причина отклонения заявки"
+                    },
+                    "averagePrice": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Средняя цена исполнения"
+                    },
+                    "calculationVolume": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Расчетный объем"
+                    },
+                    "contractSum": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Сумма контракта"
+                    },
+                    "orderStatus": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Статус заявки<br />`1` - Снята<br />`2` - Исполнена<br />`3` - Активна",
+                      "enum": [
+                        1,
+                        2,
+                        3
+                      ]
+                    },
+                    "orderType": {
+                      "type": "integer",
+                      "format": "int32",
+                      "enum": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6,
+                        7,
+                        10,
+                        11
+                      ],
+                      "description": "Тип заявки<br/>`1` - Рыночная<br />`2` - Лимитная<br />`3` - Айсберг<br />`4` - Стоп-лимит<br />`5` - Тейк-профит (порождает лимитную заявку)<br />`6` - Стоп-лосс<br />`7` - Тейк-профит и стоп-лосс<br />`10` - Лимитная на 30 дней<br />`11` - Тейк-профит<br />"
+                    },
+                    "side": {
+                      "type": "integer",
+                      "format": "int32",
+                      "enum": [
+                        1,
+                        2
+                      ],
+                      "description": "Направление заявки:<br/>`1` – Покупка<br/>`2` – Продажа"
+                    },
+                    "orderQuantityLots": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Количество в заявке (в лотах)"
+                    },
+                    "remainedQuantityLots": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Оставшееся количество (в лотах)"
+                    },
+                    "executedQuantityLots": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Исполненное количество (в лотах)"
+                    },
+                    "linkedOrder": {
+                      "type": "string",
+                      "description": "Номер связанной заявки"
+                    },
+                    "stopOrder": {
+                      "type": "string",
+                      "description": "Номер стоп-заявки"
+                    },
+                    "visible": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Видимая часть айсберг-заявки"
+                    },
+                    "marketTakeProfit": {
+                      "type": "integer",
+                      "enum": [
+                        1,
+                        2
+                      ],
+                      "description": "Признак рыночного тейк-профита<br/>`1` – Рыночная заявка<br/>`2` – Лимитная заявка"
+                    },
+                    "marketStopLoss": {
+                      "type": "integer",
+                      "enum": [
+                        1,
+                        2
+                      ],
+                      "description": "Признак рыночного стоп-лосса<br/>`1` – Рыночная заявка<br/>`2` – Лимитная заявка"
+                    },
+                    "positionPriceStop": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Цена стопа по позиции"
+                    },
+                    "positionPriceLimit": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Лимитная цена по позиции"
+                    }
+                  },
+                  "title": "OrdersSearchResponse"
+                }
+              },
+              "totalRecords": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Общее количество записей"
+              },
+              "totalPages": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Общее количество страниц"
+              }
+            },
+            "title": "ListResponseOrdersSearchResponse"
+          }
+        }
+      }
+    },
+    "429": {
+      "description": "Too Many Requests",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}

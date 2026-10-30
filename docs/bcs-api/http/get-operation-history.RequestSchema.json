@@ -1,0 +1,88 @@
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationTypes": {
+              "type": "array",
+              "description": "Тип операции<br/>`PayOut` – Вывод денежных средств<br/>`PayIn` – Пополнение счета<br/>`PayTransfer` – Перевод денежных средств<br/>`Dividend` – Выплата дивидендов<br/>`DividendDebt` – Выплата дивидендов РЕПО<br/>`BondPayingOff` – Выплата купона<br/>`Commission` – Комиссия<br/>`IncomeTax` – НДФЛ<br/>`SecurityOut` – Списание ценных бумаг<br/>`SecurityIn` – Зачисление ценных бумаг<br/>`BondPartRepayment` – Частичное погашение облигаций<br/>`BondFullRepayment` – Полное погашение облигаций<br/>`StructuralProductRepayment` – Выплата по фонду<br/>`InvestmentShareRepayment` – Выплата по структурному продукту<br/>`PayOutFx` - Вывод денежных средств со счёта Форекс/CFD<br/>`PayOutDfa` - Вывод денежных средств со счёта ЦФА<br/>`PayOutDu` - Пополнение договора ДУ с брокерского счёта<br/>`PayInFx` - Пополнение счёта Форекс/CFD<br/>`PayInDfa` - Пополнение ДС счёта ЦФА<br/>`VarMargin` - Начисление/списание вариационной маржи",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "PayOut",
+                  "PayIn",
+                  "PayTransfer",
+                  "Dividend",
+                  "DividendDebt",
+                  "BondPayingOff",
+                  "Commission",
+                  "IncomeTax",
+                  "SecurityOut",
+                  "SecurityIn",
+                  "BondPartRepayment",
+                  "BondFullRepayment",
+                  "StructuralProductRepayment",
+                  "InvestmentShareRepayment",
+                  "PayOutFx",
+                  "PayOutDfa",
+                  "PayOutDu",
+                  "PayInFx",
+                  "PayInDfa",
+                  "VarMargin"
+                ]
+              }
+            },
+            "statuses": {
+              "type": "array",
+              "description": "Статусы",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "Approved",
+                  "InProgress",
+                  "Rejected"
+                ]
+              }
+            },
+            "startDateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Начало периода выборки"
+            },
+            "endDateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Конец периода выборки"
+            },
+            "isins": {
+              "type": "array",
+              "description": "Фильтр по ISIN'ам",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tickers": {
+              "type": "array",
+              "description": "Фильтр по тикерам инструментов",
+              "items": {
+                "type": "string"
+              }
+            },
+            "currencies": {
+              "type": "array",
+              "description": "Фильтр по валютам",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "title": "OperationRequest"
+        }
+      }
+    },
+    "required": true
+  }
+}

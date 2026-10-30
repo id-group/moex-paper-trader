@@ -1,0 +1,26 @@
+{
+  "parameters": [
+    {
+      "name": "orderIdType",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "string",
+        "enum": [
+          "1",
+          "2"
+        ],
+        "default": "1"
+      },
+      "description": "Тип идентификатора заявки:<br />`1` – Идентификатор заявки, сгенерированный при подаче заявки клиентом в формате `UUID`<br />`2` – Идентификатор заявки (например `20260501-TQBR-79628540663`)"
+    },
+    {
+      "name": "orderId",
+      "in": "query",
+      "required": true,
+      "type": "string",
+      "minLength": 1,
+      "description": "Идентификатор заявки. При `orderIdType = \"1\"` передаётся `clientOrderId` в формате UUID; при `orderIdType = \"2\"` – биржевой идентификатор в формате `ГГММДД-КодКласса-НомерЗаявки`."
+    }
+  ]
+}

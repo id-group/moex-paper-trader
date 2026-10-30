@@ -1,0 +1,59 @@
+// Сборочный скрипт единого проекта: версии плагинов — в gradle/libs.versions.toml.
+//
+// Архитектурное решение: один Gradle-проект без модулей; границы слоёв
+// (app/core/bks/infra) задаются пакетами и контролируются ArchUnit-тестами.
+plugins {
+    id 'java'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.dependency.management)
+    alias(libs.plugins.spotless)
+}
+
+group = 'ru.moex.papertrader'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    // Инструментарий Java 25 — Gradle сам найдёт подходящий JDK (в т.ч. в ~/.jdks).
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Версии JUnit/Mockito/AssertJ приходят из BOM Spring Boot (плагин spring-boot совместно
+// с dependency-management импортирует spring-boot-dependencies автоматически).
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // ArchUnit — формальный контроль архитектурных правил из AGENTS.md (core без Spring и т.д.).
+    testImplementation libs.archunit.junit5
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Единый стиль кода: Google Java Format (см. AGENTS.md).
+// ВАЖНО: версия GJF жёстко связана с версией Spotless (glue-код): 1.37.0 с Spotless 8.10.4
+// падает NoSuchMethodError: JavaFormatterOptions$Style.valueOf. Перед обновлением любой
+// из двух версий проверять spotlessApply на тестовом файле.
+spotless {
+    java {
+        target 'src/**/*.java'
+        googleJavaFormat(libs.versions.google.java.format.get())
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    // Стабильная кодировка для логов тестов на Windows.
+    systemProperty 'file.encoding', 'UTF-8'
+}

@@ -1,0 +1,13 @@
+# Конфигурация эмулятора брокера.
+# Этап 1: минимальный сервис с health check.
+server:
+  port: 8080
+
+spring:
+  application:
+    name: broker-emulator
+
+logging:
+  level:
+    root: INFO
+    ru.moex.papertrader: DEBUG

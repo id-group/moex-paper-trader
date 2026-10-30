@@ -1,0 +1,39 @@
+{
+  "parameters": [
+    {
+      "name": "ticker",
+      "in": "query",
+      "description": "Тикер инструмента",
+      "example": "SBER",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    {
+      "name": "classCode",
+      "in": "query",
+      "description": "Код класса ценной бумаги",
+      "example": "TQBR",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    {
+      "name": "depth",
+      "in": "query",
+      "required": false,
+      "description": "Глубина стакана",
+      "schema": {
+        "type": "integer",
+        "format": "int32",
+        "default": 20,
+        "maximum": 20,
+        "minimum": 1
+      }
+    }
+  ]
+}

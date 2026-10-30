@@ -1,0 +1,36 @@
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "clientOrderId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Уникальный идентификатор заявки вам нужно сгенерировать самостоятельно в формате UUID. Используется для отслеживания и предотвращения дублирующих заявок"
+            },
+            "price": {
+              "type": "number",
+              "minimum": 1e-7,
+              "description": "Цена"
+            },
+            "orderQuantity": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "description": "Количество в заявке (шт.)"
+            }
+          },
+          "required": [
+            "clientOrderId",
+            "orderQuantity"
+          ],
+          "title": "UpdateOrderRequest"
+        }
+      }
+    },
+    "required": true
+  }
+}

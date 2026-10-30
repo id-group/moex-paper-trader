@@ -1,0 +1,233 @@
+{
+  "responses": {
+    "200": {
+      "description": "OK",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "ticker": {
+                      "type": "string",
+                      "description": "Тикер инструмента"
+                    },
+                    "classCode": {
+                      "type": "string",
+                      "description": "Код класса ценной бумаги"
+                    },
+                    "dateTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Время обновления данных (UTC)"
+                    },
+                    "securityTradingStatus": {
+                      "type": "integer",
+                      "format": "int32",
+                      "enum": [
+                        0,
+                        2,
+                        17,
+                        18,
+                        100,
+                        101,
+                        102,
+                        103,
+                        104
+                      ],
+                      "description": "Статус торговли инструментом<br/>`2` — Торги приостановлены<br/>`17` — Торги открыты<br/>`18` — Торги закрыты<br/>`100` – Закрытие торгов<br/>`101` — Открытие торгов<br />`102` — Аукцион<br />`103` — Аукцион закрытия<br/>`104` — Дискретный аукцион"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "description": "Валюта котировки"
+                    },
+                    "bid": {
+                      "type": "number",
+                      "description": "Лучшая цена покупки"
+                    },
+                    "offer": {
+                      "type": "number",
+                      "description": "Лучшая цена продажи"
+                    },
+                    "open": {
+                      "type": "number",
+                      "description": "Цена открытия торговой сессии"
+                    },
+                    "close": {
+                      "type": "number",
+                      "description": "Цена закрытия предыдущей сессии"
+                    },
+                    "high": {
+                      "type": "number",
+                      "description": "Максимальная цена за день"
+                    },
+                    "low": {
+                      "type": "number",
+                      "description": "Минимальная цена за день"
+                    },
+                    "theoreticalPrice": {
+                      "type": "number",
+                      "description": "Цена расчетная (у опциона)"
+                    },
+                    "last": {
+                      "type": "number",
+                      "description": "Последняя цена сделки"
+                    },
+                    "bidYield": {
+                      "type": "number",
+                      "description": "Доходность котировок покупки (для облигаций)"
+                    },
+                    "offerYield": {
+                      "type": "number",
+                      "description": "Доходность котировок продажи (для облигаций)"
+                    },
+                    "change": {
+                      "type": "number",
+                      "description": "Изменение цены за текущую сессию, в валюте цены"
+                    },
+                    "changeRate": {
+                      "type": "number",
+                      "description": "Изменение цены за текущую сессию, в %"
+                    }
+                  },
+                  "title": "MarketDataResponse"
+                }
+              }
+            },
+            "title": "QuotesListResponse"
+          }
+        }
+      }
+    },
+    "400": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    },
+    "429": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}

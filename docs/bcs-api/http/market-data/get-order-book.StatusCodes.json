@@ -1,0 +1,209 @@
+{
+  "responses": {
+    "200": {
+      "description": "OK",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "depth": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Глубина стакана"
+              },
+              "dateTime": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Дата и время обновления стакана"
+              },
+              "ticker": {
+                "type": "string",
+                "description": "Тикер инструмента"
+              },
+              "classCode": {
+                "type": "string",
+                "description": "Код класса ценной бумаги"
+              },
+              "bidVolume": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Суммарный объем заявок на покупку (`bids`) в шт., рассчитанный по уровням в пределах глубины `depth`"
+              },
+              "askVolume": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Суммарный объем заявок на продажу (`asks`) в шт., рассчитанный по уровням в пределах глубины `depth`"
+              },
+              "bids": {
+                "type": "array",
+                "description": "Предложения покупки",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "price": {
+                      "type": "number",
+                      "description": "Цена"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Количество в шт."
+                    }
+                  },
+                  "title": "Volume"
+                }
+              },
+              "asks": {
+                "type": "array",
+                "description": "Предложения продажи",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "price": {
+                      "type": "number",
+                      "description": "Цена"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Количество в шт."
+                    }
+                  },
+                  "title": "Volume"
+                }
+              }
+            },
+            "title": "OrderBookRestResponse"
+          }
+        }
+      }
+    },
+    "400": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    },
+    "429": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}
