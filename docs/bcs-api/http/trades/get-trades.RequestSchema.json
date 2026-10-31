@@ -1,0 +1,68 @@
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "description": "Параметры запроса для поиска сделок",
+          "properties": {
+            "side": {
+              "type": "string",
+              "description": "Направление сделки:<br/>`1` - Покупка<br/>`2` - Продажа",
+              "enum": [
+                "1",
+                "2"
+              ]
+            },
+            "tradeNums": {
+              "type": "array",
+              "description": "Список номеров сделок для фильтрации",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "uniqueItems": true
+            },
+            "orderNums": {
+              "type": "array",
+              "description": "Список номеров заявок для фильтрации",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "uniqueItems": true
+            },
+            "tickers": {
+              "type": "array",
+              "description": "Список тикеров инструментов для фильтрации",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "classCodes": {
+              "type": "array",
+              "description": "Список кодов классов инструментов для фильтрации",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "startDateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Начало периода выборки"
+            },
+            "endDateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Конец периода выборки"
+            }
+          },
+          "title": "TradesSearchRequest"
+        }
+      }
+    }
+  }
+}

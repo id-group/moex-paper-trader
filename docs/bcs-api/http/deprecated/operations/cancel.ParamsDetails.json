@@ -1,0 +1,14 @@
+{
+  "parameters": [
+    {
+      "name": "originalClientOrderId",
+      "in": "path",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "description": "Уникальный идентификатор заявки, который вы сгенерировали при ее подаче"
+    }
+  ]
+}

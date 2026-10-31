@@ -1,0 +1,193 @@
+{
+  "responses": {
+    "200": {
+      "description": "OK",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Идентификатор операции"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата операции"
+                    },
+                    "isIia": {
+                      "type": "boolean",
+                      "description": "Признак ИИС соглашения"
+                    },
+                    "ticker": {
+                      "type": "string",
+                      "description": "Тикер эмитента"
+                    },
+                    "classCode": {
+                      "type": "string",
+                      "description": "Код класса эмитента"
+                    },
+                    "type": {
+                      "type": "string",
+                      "description": "Тип операции<br/>`PayOut` – Вывод денежных средств<br/>`PayIn` – Пополнение счета<br/>`PayTransfer` – Перевод денежных средств<br/>`Dividend` – Выплата дивидендов<br/>`DividendDebt` – Выплата дивидендов РЕПО<br/>`BondPayingOff` – Выплата купона<br/>`Commission` – Комиссия<br/>`IncomeTax` – НДФЛ<br/>`SecurityOut` – Списание ценных бумаг<br/>`SecurityIn` – Зачисление ценных бумаг<br/>`BondPartRepayment` – Частичное погашение облигаций<br/>`BondFullRepayment` – Полное погашение облигаций<br/>`StructuralProductRepayment` – Выплата по фонду<br/>`InvestmentShareRepayment` – Выплата по структурному продукту<br/>`PayOutFx` - Вывод денежных средств со счёта Форекс/CFD<br/>`PayOutDfa` - Вывод денежных средств со счёта ЦФА<br/>`PayOutDu` - Пополнение договора ДУ с брокерского счёта<br/>`PayInFx` - Пополнение счёта Форекс/CFD<br/>`PayInDfa` - Пополнение ДС счёта ЦФА<br/>`VarMargin` - Начисление/списание вариационной маржи",
+                      "enum": [
+                        "PayOut",
+                        "PayIn",
+                        "PayTransfer",
+                        "Dividend",
+                        "DividendDebt",
+                        "BondPayingOff",
+                        "Commission",
+                        "IncomeTax",
+                        "SecurityOut",
+                        "SecurityIn",
+                        "BondPartRepayment",
+                        "BondFullRepayment",
+                        "StructuralProductRepayment",
+                        "InvestmentShareRepayment",
+                        "PayOutFx",
+                        "PayOutDfa",
+                        "PayOutDu",
+                        "PayInFx",
+                        "PayInDfa",
+                        "VarMargin"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Статус операции",
+                      "enum": [
+                        "Approved",
+                        "InProgress",
+                        "Rejected"
+                      ]
+                    },
+                    "sum": {
+                      "type": "number",
+                      "description": "Сумма операции"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "description": "Валюта операции"
+                    },
+                    "isRestsPayOut": {
+                      "type": "boolean",
+                      "description": "Признак вывода денежных средств всего остатка на счете"
+                    },
+                    "isin": {
+                      "type": "string",
+                      "description": "ISIN финансового инструмента"
+                    },
+                    "issuerName": {
+                      "type": "string",
+                      "description": "Название финансового инструмента"
+                    },
+                    "replenishmentType": {
+                      "type": "string",
+                      "description": "Способ пополнения "
+                    },
+                    "executionPeriod": {
+                      "type": "string",
+                      "description": "Предполагаемый срок исполнения операции"
+                    },
+                    "balanceChange": {
+                      "type": "string",
+                      "description": "Значение того, как операция изменяет баланс счёта<br/>`Neutral` – не изменяет<br/>`Negative` – уменьшает<br/>`Positive` – увеличивает",
+                      "enum": [
+                        "Neutral",
+                        "Negative",
+                        "Positive"
+                      ]
+                    },
+                    "rejectionReason": {
+                      "type": "string",
+                      "description": "Причина отклонения операции"
+                    }
+                  },
+                  "title": "Operation"
+                }
+              },
+              "pageSize": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Количество записей на странице"
+              }
+            },
+            "title": "OperationListResponse"
+          }
+        }
+      }
+    },
+    "429": {
+      "description": "Too Many Requests",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}

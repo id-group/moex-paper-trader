@@ -1,0 +1,47 @@
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "instruments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "ticker": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Тикер инструмента",
+                    "example": "SBER"
+                  },
+                  "classCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Код класса ценной бумаги",
+                    "example": "TQBR"
+                  }
+                },
+                "required": [
+                  "classCode",
+                  "ticker"
+                ],
+                "title": "Instrument"
+              },
+              "minItems": 1,
+              "maxItems": 100,
+              "description": "Список инструментов"
+            }
+          },
+          "required": [
+            "instruments"
+          ],
+          "title": "QuotesRequest"
+        }
+      }
+    },
+    "required": true
+  }
+}

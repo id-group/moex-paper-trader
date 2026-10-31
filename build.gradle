@@ -1,0 +1,103 @@
+// Сборочный скрипт единого проекта: версии плагинов — в gradle/libs.versions.toml.
+//
+// Архитектурное решение: один Gradle-проект без модулей; границы слоёв
+// (app/core/bks/infra) задаются пакетами и контролируются ArchUnit-тестами.
+plugins {
+    id 'java'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.dependency.management)
+    alias(libs.plugins.spotless)
+    id 'jacoco'
+}
+
+group = 'ru.moex.papertrader'
+version = '0.1.0-SNAPSHOT'
+
+java {
+    // Инструментарий Java 25 — Gradle сам найдёт подходящий JDK (в т.ч. в ~/.jdks).
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Версии JUnit/Mockito/AssertJ приходят из BOM Spring Boot (плагин spring-boot совместно
+// с dependency-management импортирует spring-boot-dependencies автоматически).
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Мониторинг: health и метрики через /actuator/** (AGENTS.md, docs/ARCHITECTURE.md §11).
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // ArchUnit — формальный контроль архитектурных правил из AGENTS.md (core без Spring и т.д.).
+    testImplementation libs.archunit.junit5
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Единый стиль кода: Google Java Format (см. AGENTS.md).
+// ВАЖНО: версия GJF жёстко связана с версией Spotless (glue-код): 1.37.0 с Spotless 8.10.4
+// падает NoSuchMethodError: JavaFormatterOptions$Style.valueOf. Перед обновлением любой
+// из двух версий проверять spotlessApply на тестовом файле.
+spotless {
+    java {
+        target 'src/**/*.java'
+        googleJavaFormat(libs.versions.google.java.format.get())
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    // Стабильная кодировка для логов тестов на Windows.
+    systemProperty 'file.encoding', 'UTF-8'
+}
+
+// Покрытие тестами (AGENTS.md §5): отчёт после test, порог ≥ 60% в составе check (временно, см. docs/temporary-decisions.md #9).
+// Точка входа Spring Boot без логики исключается из подсчёта.
+jacoco {
+    toolVersion = '0.8.16'
+}
+
+def jacocoExcludes = ['ru/moex/papertrader/BrokerEmulatorApplication*.class']
+
+tasks.named('test') {
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: jacocoExcludes)
+    }))
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('jacocoTestReport')
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: jacocoExcludes)
+    }))
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.60
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
+}

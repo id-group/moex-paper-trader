@@ -1,0 +1,15 @@
+# Каталог версий: единая точка управления версиями зависимостей и плагинов.
+[versions]
+spring-boot = "4.1.2"
+dependency-management = "1.1.7"
+spotless = "8.10.4"
+google-java-format = "1.36.1"  # НЕ 1.37.0: она несовместима с glue-кодом Spotless 8.10.4 (NoSuchMethodError Style.valueOf)
+archunit = "1.5.1"
+
+[libraries]
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+dependency-management = { id = "io.spring.dependency-management", version.ref = "dependency-management" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

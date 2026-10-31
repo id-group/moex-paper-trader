@@ -1,0 +1,91 @@
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "description": "Параметры запроса для поиска заявок",
+          "properties": {
+            "startDateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Начало периода выборки"
+            },
+            "endDateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Конец периода выборки"
+            },
+            "side": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ],
+              "description": "Направление заявки:<br/>`1` – Покупка<br/>`2` – Продажа"
+            },
+            "orderStatus": {
+              "type": "array",
+              "description": "Список статусов заявок для фильтрации<br />`1` - Снята<br />`2` - Исполнена<br />`3` - Активна",
+              "items": {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "uniqueItems": true
+            },
+            "orderTypes": {
+              "type": "array",
+              "description": "Список типов заявок для фильтрации<br />`1` - Рыночная<br />`2` - Лимитная<br />`3` - Айсберг<br />`4` - Стоп-лимит<br />`5` - Тейк-профит (порождает лимитную заявку)<br />`6` - Стоп-лосс<br />`7` - Тейк-профит и стоп-лосс<br />`10` - Лимитная на 30 дней<br />`11` - Тейк-профит<br />",
+              "items": {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  10,
+                  11
+                ]
+              },
+              "uniqueItems": true
+            },
+            "orderNums": {
+              "type": "array",
+              "description": "Список номеров заявок для фильтрации",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "uniqueItems": true
+            },
+            "tickers": {
+              "type": "array",
+              "description": "Список тикеров инструментов для фильтрации",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "classCodes": {
+              "type": "array",
+              "description": "Список кодов классов инструментов для фильтрации",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "title": "OrdersSearchRequest"
+        }
+      }
+    }
+  }
+}

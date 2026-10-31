@@ -1,0 +1,56 @@
+{
+  "parameters": [
+    {
+      "name": "page",
+      "in": "query",
+      "description": "Номер страницы (начиная с 0)",
+      "required": false,
+      "schema": {
+        "type": "integer",
+        "default": 0,
+        "minimum": 0
+      }
+    },
+    {
+      "name": "size",
+      "in": "query",
+      "description": "Количество записей на странице",
+      "required": false,
+      "schema": {
+        "type": "integer",
+        "default": 50,
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    {
+      "name": "sort",
+      "in": "query",
+      "description": "Сортировка по полям",
+      "required": false,
+      "schema": {
+        "type": "array",
+        "default": [
+          "orderDateTime"
+        ],
+        "items": {
+          "type": "string",
+          "enum": [
+            "orderDateTime,asc",
+            "orderDateTime,desc",
+            "updateDateTime,asc",
+            "updateDateTime,desc",
+            "ticker,asc",
+            "ticker,desc",
+            "classCode,asc",
+            "classCode,desc",
+            "orderType,asc",
+            "orderType,desc",
+            "side,asc",
+            "side,desc"
+          ]
+        }
+      }
+    }
+  ]
+}

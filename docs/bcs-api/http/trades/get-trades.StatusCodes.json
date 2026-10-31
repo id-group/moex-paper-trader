@@ -1,0 +1,209 @@
+{
+  "responses": {
+    "200": {
+      "description": "OK",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "description": "Ответ со списком сделок",
+            "properties": {
+              "records": {
+                "type": "array",
+                "description": "Список сделок",
+                "items": {
+                  "type": "object",
+                  "description": "Информация о сделке",
+                  "properties": {
+                    "orderNum": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Номер заявки"
+                    },
+                    "ticker": {
+                      "type": "string",
+                      "description": "Тикер инструмента"
+                    },
+                    "tradeNum": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Номер сделки"
+                    },
+                    "clientCode": {
+                      "type": "string",
+                      "description": "Код клиента"
+                    },
+                    "classCode": {
+                      "type": "string",
+                      "description": "Код класса инструмента"
+                    },
+                    "settlementCurrency": {
+                      "type": "string",
+                      "description": "Валюта расчетов"
+                    },
+                    "baseCurrency": {
+                      "type": "string",
+                      "description": "Базовая валюта"
+                    },
+                    "priceCurrency": {
+                      "type": "string",
+                      "description": "Валюта цены"
+                    },
+                    "side": {
+                      "type": "string",
+                      "description": "Направление сделки:<br/>`1` – Покупка<br/>`2` – Продажа",
+                      "enum": [
+                        "1",
+                        "2"
+                      ]
+                    },
+                    "instrumentType": {
+                      "type": "string",
+                      "enum": [
+                        "CURRENCY",
+                        "STOCK",
+                        "FOREIGN_STOCK",
+                        "BONDS",
+                        "NOTES",
+                        "DEPOSITARY_RECEIPTS",
+                        "EURO_BONDS",
+                        "MUTUAL_FUNDS",
+                        "ETF",
+                        "FUTURES",
+                        "OPTIONS",
+                        "GOODS",
+                        "INDICES"
+                      ],
+                      "description": "Тип инструмента:<br />`CURRENCY` - Валюта<br />`STOCK` - Акции РФ<br />`FOREIGN_STOCK` - Иностранные акции<br />`BONDS` - Облигации<br />`NOTES` - Ноты<br />`DEPOSITARY_RECEIPTS` - Депозитарные расписки<br />`EURO_BONDS` - Европейские облигации<br />`MUTUAL_FUNDS` - Фонды<br />`ETF` - ETF<br />`FUTURES` - Фьючерсы<br />`OPTIONS` - Опционы<br />`GOODS` - Товары<br />`INDICES` - Индексы"
+                    },
+                    "dealType": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Тип сделки"
+                    },
+                    "tradeDateTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Дата и время совершения сделки"
+                    },
+                    "price": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Цена сделки"
+                    },
+                    "volume": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Объем сделки"
+                    },
+                    "go": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Гарантийное обеспечение"
+                    },
+                    "contractAmount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Сумма контракта"
+                    },
+                    "settleDate": {
+                      "type": "string",
+                      "format": "date",
+                      "description": "Дата расчетов"
+                    },
+                    "tradeQuantity": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Количество в штуках"
+                    },
+                    "tradeQuantityLots": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Количество в лотах"
+                    }
+                  },
+                  "title": "TradesSearchResponse"
+                }
+              },
+              "totalRecords": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Общее количество записей"
+              },
+              "totalPages": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Общее количество страниц"
+              }
+            },
+            "title": "ListResponseTradesSearchResponse"
+          }
+        }
+      }
+    },
+    "429": {
+      "description": "Too Many Requests",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "ErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}

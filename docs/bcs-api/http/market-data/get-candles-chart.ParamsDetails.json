@@ -1,0 +1,69 @@
+{
+  "parameters": [
+    {
+      "name": "classCode",
+      "in": "query",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Код класса инструмента",
+      "example": "TQBR"
+    },
+    {
+      "name": "ticker",
+      "in": "query",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Тикер инструмента",
+      "example": "SBER"
+    },
+    {
+      "name": "startDate",
+      "in": "query",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "description": "Время начала периода",
+      "example": "2025-11-14T07:00:00Z"
+    },
+    {
+      "name": "endDate",
+      "in": "query",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "description": "Время конца периода",
+      "example": "2025-11-14T10:00:00Z"
+    },
+    {
+      "name": "timeFrame",
+      "in": "query",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "enum": [
+          "M1",
+          "M5",
+          "M15",
+          "M30",
+          "H1",
+          "H4",
+          "D",
+          "W",
+          "MN"
+        ]
+      },
+      "description": "`M1` - 1 минута<br />`M5` - 5 минут<br />`M15` - 15 минут<br />`M30` - 30 минут<br />`H1` - 1 час<br />`H4` - 4 часа<br />`D` - 1 день<br />`W` - 1 неделя<br />`MN` - 1 месяц",
+      "example": "H1"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "context7": {
+        "type": "remote",
+        "url": "https://mcp.context7.com/mcp"
+      }
+    }
+  },
+  "permissions": [
+    { "action": "edit", "resource": "build.gradle", "effect": "ask" },
+    { "action": "edit", "resource": "settings.gradle", "effect": "ask" },
+    { "action": "edit", "resource": "gradle/libs.versions.toml", "effect": "ask" },
+    { "action": "edit", "resource": "*application-prod.yml", "effect": "ask" },
+    { "action": "edit", "resource": "*SecurityConfig.java", "effect": "ask" },
+    { "action": "edit", "resource": "src/main/java/ru/moex/papertrader/bks/contract/*", "effect": "ask" },
+    { "action": "edit", "resource": "docs/bcs-api/*", "effect": "deny" },
+    { "action": "edit", "resource": "docs/bcs-api/*.json", "effect": "allow" },
+    { "action": "edit", "resource": "*.env", "effect": "deny" },
+    { "action": "edit", "resource": "*.env.*", "effect": "deny" },
+    { "action": "edit", "resource": "*.key", "effect": "deny" },
+    { "action": "edit", "resource": "*.pem", "effect": "deny" },
+    { "action": "shell", "resource": "git commit *", "effect": "ask" },
+    { "action": "shell", "resource": "git push *", "effect": "deny" }
+  ]
+}

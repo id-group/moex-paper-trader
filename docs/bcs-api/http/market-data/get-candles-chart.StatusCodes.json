@@ -1,0 +1,217 @@
+{
+  "responses": {
+    "200": {
+      "description": "OK",
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string",
+                "description": "Тикер инструмента",
+                "example": "SBER"
+              },
+              "classCode": {
+                "type": "string",
+                "description": "Код класса ценной бумаги",
+                "example": "TQBR"
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Время начала периода",
+                "example": "2025-11-14T07:00:00Z"
+              },
+              "endDate": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Время конца периода",
+                "example": "2025-11-14T10:00:00Z"
+              },
+              "timeFrame": {
+                "type": "string",
+                "enum": [
+                  "M1",
+                  "M5",
+                  "M15",
+                  "M30",
+                  "H1",
+                  "H4",
+                  "D",
+                  "W",
+                  "MN"
+                ],
+                "description": "`M1` - 1 минута<br />`M5` - 5 минут<br />`M15` - 15 минут<br />`M30` - 30 минут<br />`H1` - 1 час<br />`H4` - 4 часа<br />`D` - 1 день<br />`W` - 1 неделя<br />`MN` - 1 месяц",
+                "example": "H1"
+              },
+              "bars": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "time": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Время открытия свечи"
+                    },
+                    "open": {
+                      "type": "number",
+                      "description": "Цена открытия"
+                    },
+                    "close": {
+                      "type": "number",
+                      "description": "Цена закрытия"
+                    },
+                    "high": {
+                      "type": "number",
+                      "description": "Максимальная цена"
+                    },
+                    "low": {
+                      "type": "number",
+                      "description": "Минимальная цена"
+                    },
+                    "volume": {
+                      "type": "number",
+                      "description": "Объем торгов"
+                    }
+                  },
+                  "title": "BarResponse"
+                }
+              }
+            },
+            "title": "CandlesChartResponse"
+          }
+        }
+      }
+    },
+    "400": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR",
+                  "CANDLE_LIMIT_EXCEEDED"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "CandlesErrorResponse"
+          }
+        }
+      }
+    },
+    "429": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "traceId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "VALIDATION_ERROR",
+                  "RESOURCE_EXHAUSTED",
+                  "USER_BLOCKED",
+                  "BAD_REQUEST",
+                  "NOT_FOUND",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CONFLICT",
+                  "INTERNAL_SERVER_ERROR",
+                  "SESSION_NOT_FOUND_ERROR",
+                  "SESSION_EXPIRED_ERROR",
+                  "SESSION_FAILED_ERROR",
+                  "CANDLE_LIMIT_EXCEEDED"
+                ]
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "payload": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "title": "ErrorDetail"
+                }
+              },
+              "displayOptions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              }
+            },
+            "title": "CandlesErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderIdType": {
+              "type": "string",
+              "enum": [
+                "1",
+                "2"
+              ],
+              "default": "1",
+              "description": "Тип идентификатора изменяемой заявки:<br />`1` – `clientOrderId` исходной заявки в формате `UUID` (используется по умолчанию)<br />`2` – биржевой `orderId` в формате строки"
+            },
+            "orderId": {
+              "type": "string",
+              "description": "Идентификатор изменяемой заявки. При `orderIdType = \"1\"` передаётся `clientOrderId` исходной заявки в формате UUID; при `orderIdType = \"2\"` – биржевой идентификатор в формате `ГГММДД-КодКласса-НомерЗаявки`."
+            },
+            "clientOrderId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Уникальный идентификатор заявки вам нужно сгенерировать самостоятельно в формате UUID. Используется для отслеживания и предотвращения дублирующих заявок"
+            },
+            "orderType": {
+              "type": "string",
+              "enum": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "description": "Тип новой заявки:<br/>`1` – Рыночная<br/>`2` – Лимитная<br/>`3` – Алгоритмическая GTD<br/>`4` – Айсберг<br/>`5` – Условная"
+            },
+            "timeInForce": {
+              "type": "string",
+              "enum": [
+                "1",
+                "2",
+                "3"
+              ],
+              "description": "Время жизни новой заявки:<br/>`1` – Day<br/>`2` – Fill Or Kill<br/>`3` – Good Till Date, только для алгоритмических заявок. При `timeInForce = \"3\"` обязателен `expiryDate`; для остальных типов заявок поле не передаётся."
+            },
+            "expiryDate": {
+              "type": "string",
+              "pattern": "^[0-9]{8}$",
+              "description": "Дата окончания действия заявки в формате `YYYYMMDD`. Обязательна при `timeInForce = \"3\"`; дата должна быть не раньше даты изменения и не позже 30 календарных дней от неё."
+            },
+            "price": {
+              "type": "number",
+              "minimum": 1e-7,
+              "description": "Цена за одну штуку, больше 0, до 8 знаков после запятой. Используется для лимитных, алгоритмических, айсберг и условных заявок."
+            },
+            "stopPrice": {
+              "type": "number",
+              "description": "Стоп-цена для условной заявки. Обязательна в сценариях со стоп-лоссом."
+            },
+            "takePrice": {
+              "type": "number",
+              "description": "Цена тейк-профита для условной заявки. Обязательна в сценариях с тейк-профитом."
+            },
+            "visible": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Видимое количество для айсберг-заявки. Целое число больше 0 и меньше `orderQuantity`; обязательно для `orderType = \"4\"`."
+            },
+            "executionTakeProfitType": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ],
+              "description": "Тип исполнения тейк-профит заявки: `1` – рыночное, `2` – лимитное."
+            },
+            "executionStopLossType": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ],
+              "description": "Тип исполнения стоп-лосс заявки: `1` – рыночное, `2` – лимитное."
+            },
+            "spread": {
+              "type": "number",
+              "description": "Защитный спред для условной заявки."
+            },
+            "spreadType": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ],
+              "default": 0,
+              "description": "Единицы защитного спреда: `0` – валюта цены, `1` – проценты. Используется только при переданном `spread`."
+            },
+            "offset": {
+              "type": "number",
+              "description": "Отступ для условной заявки. По умолчанию `0`."
+            },
+            "offsetType": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ],
+              "default": 0,
+              "description": "Единицы отступа: `0` – валюта цены, `1` – проценты. Используется только при переданном `offset`."
+            },
+            "orderQuantity": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "description": "Количество в заявке (шт.)"
+            }
+          },
+          "required": [
+            "orderId",
+            "clientOrderId",
+            "orderQuantity"
+          ],
+          "title": "UpdateOrderRequest"
+        }
+      }
+    },
+    "required": true
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "parameters": [
+    {
+      "name": "size",
+      "in": "path",
+      "required": false,
+      "schema": {
+        "type": "number",
+        "format": "int64",
+        "default": 50,
+        "minimum": 1,
+        "maximum": 100
+      },
+      "description": "Количество записей на странице"
+    },
+    {
+      "name": "page",
+      "in": "path",
+      "required": false,
+      "schema": {
+        "type": "number",
+        "format": "int64",
+        "default": 0
+      },
+      "description": "Номер страницы"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "orderIdType": {
+              "type": "string",
+              "enum": [
+                "1",
+                "2"
+              ],
+              "default": "1",
+              "description": "Тип идентификатора отменяемой заявки:<br />`1` – `clientOrderId` исходной заявки в формате `UUID` (используется по умолчанию)<br />`2` – биржевой `orderId` в формате строки"
+            },
+            "orderId": {
+              "type": "string",
+              "description": "Идентификатор отменяемой заявки. При `orderIdType = \"1\"` передаётся `clientOrderId` исходной заявки в формате UUID; при `orderIdType = \"2\"` – биржевой идентификатор в формате `ГГММДД-КодКласса-НомерЗаявки`."
+            },
+            "clientOrderId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Уникальный идентификатор заявки вам нужно сгенерировать самостоятельно в формате UUID. Используется для отслеживания и предотвращения дублирующих заявок"
+            }
+          },
+          "required": [
+            "orderId",
+            "clientOrderId"
+          ],
+          "title": "CancelOrderRequest"
+        }
+      }
+    },
+    "required": true
+  }
+}
