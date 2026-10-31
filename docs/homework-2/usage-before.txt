@@ -1,0 +1,20 @@
+last 30 days ┬╖ current project
+
+COST & TOKENS
+  cost                $0.00
+  input               415.2k
+  output              257.4k
+  reasoning           231.8k
+  cache read          26.9m
+  cache write         1.5m
+  cached input        93.3%
+
+MODELS
+model                                 tokens       steps        cost
+opencode-go/qwen3.8-max#default        12.4m         112       $0.00
+opencode-go/claude-haiku-5-5#max        6.5m          49       $0.00
+opencode-go/glm-5.3#default               6m          60       $0.00
+opencode-go/glm-5.3#max                 2.3m          11       $0.00
+opencode-go/claude-haiku-5-5#defaтАж        2m          34       $0.00
+
++3 more models

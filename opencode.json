@@ -23,5 +23,9 @@
     { "action": "edit", "resource": "*.pem", "effect": "deny" },
     { "action": "shell", "resource": "git commit *", "effect": "ask" },
     { "action": "shell", "resource": "git push *", "effect": "deny" }
-  ]
+  ],
+  "compaction": {
+    "auto": true,
+    "keep": { "tokens": 20000 }
+  }
 }

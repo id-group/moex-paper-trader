@@ -46,3 +46,7 @@ bin/
 
 # ОС
 Thumbs.db
+
+# GSD Core: установщик пишет в .opencode/opencode.json пути этой машины, поэтому файл не коммитится
+# (MCP-сервер gsd в клоне не настроен; локально выставляется enabled: false, см. README, раздел «Модуль 2»)
+/.opencode/opencode.json
