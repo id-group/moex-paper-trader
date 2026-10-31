@@ -60,7 +60,7 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 - Node 24, npm 11, OpenCode 2.1.4, Docker 29, Python 3.14 (системный).
 - GSD Core ставится командой `npx @opengsd/gsd-core@1.19.0 --opencode --local --profile=standard --relative-includes` (версия закреплена). Флаг `--relative-includes` пишет относительные пути вместо путей этой машины: без него вендорная копия не работает в другом каталоге. Пакет `get-shit-done-cc` в npm помечен как deprecated — не используется.
 - Глобальный побочный эффект установщика GSD: `~/.gsd/defaults.json` (`runtime: opencode`, `resolve_model_ids: omit`).
-- Локально, после каждого запуска установщика, проверить в `.opencode/opencode.json`, что у `mcp.gsd` стоит `"enabled": false`: установщик может включить MCP-сервер снова. Файл в git не попадает, поэтому в клоне MCP-сервера `gsd` нет вовсе.
+- После каждого запуска установщика проверить в `.opencode/opencode.json`, что у `mcp.gsd` стоит `"enabled": false`. Установщик это значение сохраняет, но дописывает абсолютные строки путей (см. раздел «Git и вендорная копия GSD»).
 - Bun 1.4.4 и uv 0.13.6 поставил установщик claude-mem; при откате их не удаляли.
 
 ### Структура проекта (артефакты курса)
@@ -116,13 +116,14 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 ### Git и вендорная копия GSD
 
 - В git лежит вендорная копия GSD Core 1.19.0: `.opencode/gsd-core/`, `gsd-*` skills, commands и agents, `hooks/`, `scripts/`, манифесты; текст лицензии MIT — `.opencode/GSD-LICENSE.txt`. Это снимок чужого пакета: не редактировать вручную, обновлять установщиком отдельным коммитом.
-- Не коммитится только `.opencode/opencode.json`: установщик пишет в него пути этой машины (правило в `.gitignore`).
+- `.opencode/opencode.json` тоже в git, с относительными путями. Установщик при каждом запуске дописывает в него абсолютные строки `C:/…`: после переустановки проверьте `git status` и уберите их перед коммитом.
+- Переустановка меняет ~60 файлов `workflows/*.md` (случайные маркеры heredoc) и манифест `gsd-file-manifest.json`, поэтому после неё в `git status` будет шум. Схему хранения GSD для команды нужно решить: см. `.planning/DISCOVERY.md`, раздел 6.
 - В репозитории остаются: `.planning/`, `docs/`, `README.md`, `opencode.json` проекта, команды `checkpoint`, `resume`, `status`, `precommit`, `tdd`, `coverage`, `finish-stage`, плагин `moex-hooks.ts`.
 
 ### Как проверить
 
 1. Открыть OpenCode в каталоге проекта и набрать `/`: должны быть `checkpoint`, `resume`, `status`, а также `gsd-*`.
-2. `opencode debug config`: в блоке `compaction` есть `keep.tokens: 20000`. Локально у `mcp.gsd` стоит `disabled: true`; в клоне блока нет.
+2. `opencode debug config`: в блоке `compaction` есть `keep.tokens: 20000`; у `mcp.gsd` стоит `disabled: true`.
 3. `docs/homework-2/usage-before.png` и `usage-after.png` — снимки usage.
 4. `.planning/DISCOVERY.md` — discovery, допущения и открытые вопросы.
 5. `docs/security-checklist.md` — статусы требований безопасности.
@@ -133,3 +134,4 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 - Хук `JAVA_HOME` не проверен на реальном запуске Gradle.
 - `compaction.buffer` не поддерживается сборкой 2.1.4: порог сжатия дефолтный.
 - Снимки usage — отрисованный текст, не скриншот окна.
+- `opencode.local.json` OpenCode V2 не читает: проверено через `opencode debug config` (файл и в корне, и в `.opencode/` в конфигурацию не попал). Личные настройки — в глобальном `~/.config/opencode/opencode.json` (проектный конфиг его переопределяет) или в переменных окружения, например `MOEX_JAVA25_HOME`.
