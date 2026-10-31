@@ -4,7 +4,7 @@ description: Закрытие этапа — DoD из AGENTS.md §10, гейт p
 
 Закрой этап roadmap: `$ARGUMENTS` (номер этапа; если не указан — определи по `docs/progress.md` и `docs/roadmap.md`).
 
-Перед gradlew-командами выстави JDK 25: `$env:JAVA_HOME='C:\Users\id-gr\.jdks\liberica-full-25.0.4'`
+Перед gradlew-командами выстави JDK 25: `$env:JAVA_HOME=$env:MOEX_JAVA25_HOME` (если переменная пуста — остановиться и сообщить владельцу)
 
 1. **Бриф и скиллы.** Прочитай `docs/agent-briefs/stage-N-*.md` и загрузи профильные skills
    (см. `AGENTS.md` §9). Сверь критерии приёмки брифа с фактическим кодом; что не выполнено — перечисли.

@@ -18,7 +18,7 @@
 ### Окружение (Windows) — ВАЖНО
 
 - Перед любым запуском Gradle выставлять JDK 25:
-  `$env:JAVA_HOME='C:\Users\id-gr\.jdks\liberica-full-25.0.4'`
+  `$env:JAVA_HOME=$env:MOEX_JAVA25_HOME` (путь к JDK 25 задаётся переменной пользователя `MOEX_JAVA25_HOME`; если она пуста — остановиться и сообщить владельцу)
   (системный JAVA_HOME указывает на JDK 17, а GJF 1.36.1 требует JVM 21+ — без этого
   `spotlessCheck` падает)
 - Все исходники и конфиги — UTF-8 **без BOM**

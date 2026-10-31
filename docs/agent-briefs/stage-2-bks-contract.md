@@ -34,7 +34,7 @@
   (refresh-токены из конфига, access — JWT-подобный или opaque, TTL 24 ч — конфигурируемо).
 - Рыночные данные в контроллерах: временно — порт-заглушка `MarketDataProvider` (хардкод/конфиг
   нескольких тикеров), настоящая реализация — этап 4.
-- Конфиг: `emulator.brokers.bks.*` (список refresh-токенов с правами trade/read-only).
+- Конфиг: `emulator.brokers.bks.*` (список refresh-токенов с правами trade/read-only; значения — из переменных окружения, решение владельца).
 
 ## Явно НЕ делать
 
@@ -59,7 +59,7 @@
 ## Проверка
 
 ```powershell
-$env:JAVA_HOME='C:\Users\id-gr\.jdks\liberica-full-25.0.4'
+$env:JAVA_HOME=$env:MOEX_JAVA25_HOME
 ./gradlew clean build
 ```
 

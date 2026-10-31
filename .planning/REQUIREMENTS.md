@@ -20,7 +20,7 @@
 - [ ] **BKS-REF-01**: `instruments/by-tickers`, `trading-schedule/status`
 - [ ] **BKS-ERR-01**: ошибки в формате `ErrorResponse` (timestamp, traceId, type, errors[]) с HTTP-кодами из StatusCodes (ADR-6)
 - [ ] **BKS-DTO-01**: DTO `bks/contract` — точное зеркало схем снапшота; сверка покамерно в отчёте фазы
-- [ ] **BKS-CFG-01**: префикс `/api/bks/v1` и список refresh-токенов через `emulator.brokers.bks.*`; способ хранения секретов — см. S3 в `docs/security-checklist.md`
+- [ ] **BKS-CFG-01**: префикс `/api/bks/v1` и список refresh-токенов через `emulator.brokers.bks.*`; значения refresh-токенов — из переменных окружения (решение владельца, S3 в `docs/security-checklist.md`)
 
 ### Домен и портфель (фаза 3)
 

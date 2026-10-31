@@ -17,7 +17,7 @@
   (`bcs-contract`, `bcs-portfolio`, `marketdata-modes`, `execution-model`); добавлена
   команда `/precommit`; документация проекта консолидирована в `docs/`.
 
-- **Модуль 2 (ДЗ OTUS), окружение агента**: GSD Core 1.19.0 (профиль `standard`); команды `/checkpoint`, `/resume`, `/status`; хук JDK 25 для Gradle; сжатие контекста; чек-лист безопасности; discovery в `.planning/`. Память (claude-mem) не подключена — блокер, см. README.
+- **Модуль 2 (ДЗ OTUS), окружение агента**: GSD Core 1.19.0 (профиль `standard`); команды `/checkpoint`, `/resume`, `/status`; хук JDK 25 для Gradle; сжатие контекста; чек-лист безопасности; discovery в `.planning/`. Память (claude-mem 15.7.0, OpenCode Go, регион Global) работает: наблюдатель пишет, поиск отвечает (проверено 2026-10-31, 16:54); телеметрия claude-mem отключена; см. README.
 
 ## Открытые хвосты
 

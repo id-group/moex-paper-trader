@@ -4,7 +4,7 @@ description: TDD-цикл red → green → refactor для одной зада�
 
 Реализуй `$ARGUMENTS` по TDD: тесты пишутся до продакшн-кода, по одному поведению за раз.
 
-Перед gradlew-командами выстави JDK 25: `$env:JAVA_HOME='C:\Users\id-gr\.jdks\liberica-full-25.0.4'`
+Перед gradlew-командами выстави JDK 25: `$env:JAVA_HOME=$env:MOEX_JAVA25_HOME` (если переменная пуста — остановиться и сообщить владельцу)
 
 Перед работой загрузи профильный skill из `AGENTS.md` §9, если задача в его области.
 

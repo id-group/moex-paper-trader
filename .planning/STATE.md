@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-10-31)
 Phase: 2 of 7 (Контракт БКС)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-10-31 — discovery модуля 2: файлы `.planning/` созданы по шаблонам GSD
+Last activity: 2026-10-31 — память claude-mem работает (наблюдатель пишет, проверено 16:54); решения владельца по DISCOVERY §4 внесены
 
 Progress: [█░░░░░░░░░] 14%
 
@@ -49,8 +49,9 @@ Progress: [█░░░░░░░░░] 14%
 Полный журнал — в PROJECT.md (Key Decisions). Недавние:
 
 - [Модуль 2]: GSD Core 1.19.0, профиль `standard`, MCP `gsd` выключен
-- [Модуль 2]: claude-mem не подключён: установка откатана, нужен провайдер наблюдателя
+- [Модуль 2]: claude-mem 15.7.0 работает: OpenCode Go, регион Global, редакция секретов включена
 - [Модуль 2]: GSD-файлы в git не хранятся (вариант 1, решение владельца); установка GSD — на каждой машине командой из README (DISCOVERY, раздел 6)
+- [Модуль 2]: телеметрия claude-mem отключена целиком (решение владельца, 2026-10-31)
 
 ### Pending Todos
 
@@ -58,8 +59,6 @@ None yet.
 
 ### Blockers/Concerns
 
-- Хранение refresh-токенов БКС (env или локальный файл) — ждёт решения владельца (security-checklist S3)
-- Память агента (claude-mem): нужен провайдер наблюдателя и ключ — модуль 2
 - Actuator: какие эндпоинты открыть — `docs/temporary-decisions.md` #1, этап 2
 
 ## Deferred Items
@@ -71,5 +70,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-10-31
-Stopped at: discovery по допущениям завершён; ждём ответы владельца на вопросы из `DISCOVERY.md` §4
-Resume file: docs/checkpoints/2026-10-31-1200-module2.md
+Stopped at: решения владельца по `DISCOVERY.md` §4 внесены; память работает (проверено 16:54); телеметрия отключена; модуль 2 закоммичен
+Resume file: docs/checkpoints/2026-10-31-1656-memory-ok.md

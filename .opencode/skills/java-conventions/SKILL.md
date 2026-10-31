@@ -65,7 +65,7 @@ description: Соглашения по коду Java 25 / Spring Boot 4 в moex-
 - Версия GJF жёстко связана со Spotless (пара 8.10.4 + 1.36.1). Не обновлять ни одну без проверки
   `spotlessApply`.
 - Перед запуском Gradle выставить JDK 25:
-  `$env:JAVA_HOME='C:\Users\id-gr\.jdks\liberica-full-25.0.4'`.
+  `$env:JAVA_HOME=$env:MOEX_JAVA25_HOME` (если переменная пуста — остановиться и сообщить владельцу).
 
 ## Чек-лист перед завершением
 

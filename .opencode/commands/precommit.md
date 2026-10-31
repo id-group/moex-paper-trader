@@ -4,7 +4,7 @@ description: Гейт перед коммитом — spotlessCheck, тесты,
 
 Выполни предкоммит-проверку строго по шагам, не пропуская ни одного.
 
-Перед gradlew-командами выстави JDK 25: `$env:JAVA_HOME='C:\Users\id-gr\.jdks\liberica-full-25.0.4'`
+Перед gradlew-командами выстави JDK 25: `$env:JAVA_HOME=$env:MOEX_JAVA25_HOME` (если переменная пуста — остановиться и сообщить владельцу)
 
 1. **Формат**: запусти `./gradlew spotlessCheck`. Если не зелёный — запусти
    `./gradlew spotlessApply`, разбери `git diff` (что поменял форматтер, не затёрта ли

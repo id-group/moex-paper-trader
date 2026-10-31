@@ -67,7 +67,7 @@ description: Правила тестирования moex-paper-trader — TDD, 
 ## Команды
 
 Перед запуском Gradle выставить JDK 25:
-`$env:JAVA_HOME='C:\Users\id-gr\.jdks\liberica-full-25.0.4'`
+`$env:JAVA_HOME=$env:MOEX_JAVA25_HOME` (если переменная `MOEX_JAVA25_HOME` пуста — остановиться и сообщить владельцу)
 
 - Один класс: `./gradlew test --tests "ru.moex.papertrader.<пакет>.<Класс>Test"`
 - Один метод: `./gradlew test --tests "ru.moex.papertrader.<пакет>.<Класс>Test.<метод>"`

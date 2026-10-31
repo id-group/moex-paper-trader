@@ -5,7 +5,7 @@ description: Покрытие JaCoCo — прогон проверки покр�
 Проверь покрытие тестами и покажи, где порог покрытия не выполнен. Фильтр по пакету: `$ARGUMENTS`
 (если пусто — весь проект).
 
-Перед gradlew-командами выстави JDK 25: `$env:JAVA_HOME='C:\Users\id-gr\.jdks\liberica-full-25.0.4'`
+Перед gradlew-командами выстави JDK 25: `$env:JAVA_HOME=$env:MOEX_JAVA25_HOME` (если переменная пуста — остановиться и сообщить владельцу)
 
 1. Запусти `./gradlew test jacocoTestCoverageVerification`. Отчёт формируется в
    `build/reports/jacoco/test/jacocoTestReport.xml` (XML) и `build/reports/jacoco/test/html/index.html`.
