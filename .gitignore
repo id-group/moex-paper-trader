@@ -46,3 +46,20 @@ bin/
 
 # ОС
 Thumbs.db
+
+# GSD Core: генерируется установщиком на каждой машине (команда в README, раздел «Окружение»); в git не хранится
+/.opencode/gsd-core/
+/.opencode/gsd-file-manifest.json
+/.opencode/gsd-install-state.json
+/.opencode/gsd-migration-journal/
+/.opencode/.gsd-profile
+/.opencode/agents/
+/.opencode/hooks/
+/.opencode/scripts/
+/.opencode/skills/gsd-*/
+/.opencode/commands/gsd-*.md
+/.opencode/plugins/gsd-core.js
+/.opencode/plugins/gsd-statusline/
+/.opencode/plugins/package.json
+/.opencode/settings.json
+/.opencode/opencode.json

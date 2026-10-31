@@ -58,9 +58,9 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 ### Окружение
 
 - Node 24, npm 11, OpenCode 2.1.4, Docker 29, Python 3.14 (системный).
-- GSD Core ставится командой `npx @opengsd/gsd-core@1.19.0 --opencode --local --profile=standard --relative-includes` (версия закреплена). Флаг `--relative-includes` пишет относительные пути вместо путей этой машины: без него вендорная копия не работает в другом каталоге. Пакет `get-shit-done-cc` в npm помечен как deprecated — не используется.
+- GSD Core ставится командой `npx @opengsd/gsd-core@1.19.0 --opencode --local --profile=standard --relative-includes` (версия закреплена). Флаг `--relative-includes` пишет относительные пути вместо путей этой машины: без него GSD ломается в другом checkout, например в git worktree. Пакет `get-shit-done-cc` в npm помечен как deprecated — не используется.
 - Глобальный побочный эффект установщика GSD: `~/.gsd/defaults.json` (`runtime: opencode`, `resolve_model_ids: omit`).
-- После каждого запуска установщика проверить в `.opencode/opencode.json`, что у `mcp.gsd` стоит `"enabled": false`. Установщик это значение сохраняет, но дописывает абсолютные строки путей (см. раздел «Git и вендорная копия GSD»).
+- MCP-сервер `gsd` выключить у себя: в `.opencode/opencode.json` (файл генерируется установщиком и в git не хранится) у `mcp.gsd` поставить `"enabled": false`. Установщик при повторном запуске это значение сохраняет.
 - Bun 1.4.4 и uv 0.13.6 поставил установщик claude-mem; при откате их не удаляли.
 
 ### Структура проекта (артефакты курса)
@@ -113,12 +113,12 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 - Метод: шаблоны GSD плюс разбор существующих документов. Интерактивные вопросы GSD клиент не показал, поэтому решения записаны как допущения и ждут подтверждения.
 - Открытые вопросы владельцу — `.planning/DISCOVERY.md` §4.
 
-### Git и вендорная копия GSD
+### Git и установка GSD
 
-- В git лежит вендорная копия GSD Core 1.19.0: `.opencode/gsd-core/`, `gsd-*` skills, commands и agents, `hooks/`, `scripts/`, манифесты; текст лицензии MIT — `.opencode/GSD-LICENSE.txt`. Это снимок чужого пакета: не редактировать вручную, обновлять установщиком отдельным коммитом.
-- `.opencode/opencode.json` тоже в git, с относительными путями. Установщик при каждом запуске дописывает в него абсолютные строки `C:/…`: после переустановки проверьте `git status` и уберите их перед коммитом.
-- Переустановка меняет ~60 файлов `workflows/*.md` (случайные маркеры heredoc) и манифест `gsd-file-manifest.json`, поэтому после неё в `git status` будет шум. Схему хранения GSD для команды нужно решить: см. `.planning/DISCOVERY.md`, раздел 6.
-- В репозитории остаются: `.planning/`, `docs/`, `README.md`, `opencode.json` проекта, команды `checkpoint`, `resume`, `status`, `precommit`, `tdd`, `coverage`, `finish-stage`, плагин `moex-hooks.ts`.
+- В git лежат наши файлы: `.planning/`, `docs/`, `README.md`, общий `opencode.json` в корне (сжатие контекста, правила, MCP `context7`), команды `checkpoint`, `resume`, `status`, `precommit`, `tdd`, `coverage`, `finish-stage`, плагин `moex-hooks.ts`, наши skills (`bcs-*`, `execution-model`, `java-conventions`, `marketdata-modes`, `testing`).
+- Файлы GSD Core в git не хранятся: установщик генерирует их на каждой машине. Это `.opencode/gsd-core/`, `gsd-*` skills, commands и agents, `hooks/`, `scripts/`, манифесты и `.opencode/opencode.json`. Правила для них в `.gitignore`.
+- Почему так: при переустановке установщик меняет около 60 файлов `workflows/*.md` (случайные маркеры heredoc) и манифест, а в `.opencode/opencode.json` дописывает абсолютные пути. В git это давало бы постоянный шум. Подробности: `.planning/DISCOVERY.md`, раздел 6.
+- Локальные настройки (MCP `gsd` и подобное) не коммитятся: они живут в сгенерированном `.opencode/opencode.json`.
 
 ### Как проверить
 
