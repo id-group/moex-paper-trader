@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.dependency.management)
     alias(libs.plugins.spotless)
+    id 'jacoco'
 }
 
 group = 'ru.moex.papertrader'
@@ -58,4 +59,45 @@ tasks.withType(Test).configureEach {
     useJUnitPlatform()
     // Стабильная кодировка для логов тестов на Windows.
     systemProperty 'file.encoding', 'UTF-8'
+}
+
+// Покрытие тестами (AGENTS.md §5): отчёт после test, порог ≥ 80% в составе check.
+// Точка входа Spring Boot без логики исключается из подсчёта.
+jacoco {
+    toolVersion = '0.8.16'
+}
+
+def jacocoExcludes = ['ru/moex/papertrader/BrokerEmulatorApplication*.class']
+
+tasks.named('test') {
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: jacocoExcludes)
+    }))
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('jacocoTestReport')
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: jacocoExcludes)
+    }))
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
 }

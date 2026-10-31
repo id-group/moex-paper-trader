@@ -168,11 +168,16 @@ src/
 - `bcs-portfolio` — виртуальный портфель, лимиты БКС, ГО, вариационная маржа, NAV, комиссии
 - `marketdata-modes` — LIVE/RECORD/REPLAY, `Clock`, seed, AlgoPack/MOEX ISS
 - `execution-model` — матчинг, проскальзывание, ADV-тиры, жизненный цикл ордеров
+- `java-conventions` — соглашения по коду Java: record-DTO, null-safety, SLF4J, слои транзакций и исключений
+- `testing` — TDD, JUnit 5 / AssertJ / Mockito, изоляция, покрытие ≥ 80%, ArchUnit
 
 ### Команды (`.opencode/commands/`)
 
-- `/precommit` — гейт перед коммитом: spotlessCheck + тесты + чистота git + отчёт;
+- `/precommit` — гейт перед коммитом: spotlessCheck + тесты + покрытие ≥ 80% + чистота git + отчёт;
   запускать перед каждым коммитом
+- `/tdd <задача>` — цикл red → green → refactor (разработка по TDD: тест раньше кода)
+- `/coverage [пакет]` — прогон JaCoCo и список классов ниже порога 80%
+- `/finish-stage N` — закрытие этапа: DoD, покрытие, обновление `docs/progress.md`
 
 ### Context7 (MCP)
 
