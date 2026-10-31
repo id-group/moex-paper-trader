@@ -37,6 +37,6 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 |---|---|
 | `opencode.json` | MCP-серверы (Context7) и правила `permissions`: что агенту можно править, а что только с подтверждением |
 | `.opencode/skills/` | спецификации, загружаются по задаче: `bcs-contract`, `bcs-portfolio`, `marketdata-modes`, `execution-model`, `java-conventions`, `testing` |
-| `.opencode/commands/` | slash-команды: `/tdd` — цикл red-green-refactor; `/coverage` — покрытие JaCoCo ≥ 80%; `/precommit` — гейт перед коммитом; `/finish-stage` — DoD этапа |
+| `.opencode/commands/` | slash-команды: `/tdd` — цикл red-green-refactor; `/coverage` — покрытие JaCoCo ≥ 60% (временно); `/precommit` — гейт перед коммитом; `/finish-stage` — DoD этапа |
 
 Правила агента — в `AGENTS.md`; коммит выполняется только с явного подтверждения владельца.

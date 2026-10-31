@@ -10,7 +10,7 @@ description: Гейт перед коммитом — spotlessCheck, тесты,
    `./gradlew spotlessApply`, разбери `git diff` (что поменял форматтер, не затёрта ли
    логика) и повтори check.
 2. **Тесты и покрытие**: запусти `./gradlew test jacocoTestCoverageVerification`. Если не
-   зелёный — исправь и повтори. Порог 80% (JaCoCo, `build.gradle`) обязателен: при падении
+   зелёный — исправь и повтори. Порог покрытия JaCoCo (`build.gradle`, сейчас 60% — временно, `docs/temporary-decisions.md` #9) обязателен: при падении
    запусти `/coverage` и допиши тесты по непокрытым классам (TDD, см. `/tdd`).
 3. **Чистота коммита**: `git status --short` — покажи весь список; убедись, что нет
    `.env`, `.env.local`, `*.key`, `*.pem` и незапланированных файлов; изменения

@@ -1,6 +1,6 @@
 ---
 name: Testing
-description: Правила тестирования moex-paper-trader — TDD, JUnit 5 + AssertJ + Mockito, изоляция без Spring Context, покрытие JaCoCo ≥ 80%, ArchUnit, детерминизм, Testcontainers с этапа 3. Загружать перед написанием или изменением тестов и перед задачами TDD.
+description: Правила тестирования moex-paper-trader — TDD, JUnit 5 + AssertJ + Mockito, изоляция без Spring Context, покрытие JaCoCo ≥ 60% (временно), ArchUnit, детерминизм, Testcontainers с этапа 3. Загружать перед написанием или изменением тестов и перед задачами TDD.
 ---
 
 # Тестирование — правила проекта
@@ -52,9 +52,9 @@ description: Правила тестирования moex-paper-trader — TDD, 
 
 ## Покрытие
 
-- JaCoCo: порог **80%** по bundle, проверка входит в `check` и `build` (`build.gradle`).
+- JaCoCo: порог **60%** по bundle (временно, `docs/temporary-decisions.md` #9; норма — 80%), проверка входит в `check` и `build` (`build.gradle`).
 - Точка входа `BrokerEmulatorApplication` исключена из подсчёта.
-- Каждый новый Service — минимум 80% unit-тестами (`AGENTS.md` §5).
+- Каждый новый Service — минимум 60% unit-тестами (временно; норма 80%, `AGENTS.md` §5).
 - Проверка: `/coverage` или `./gradlew test jacocoTestCoverageVerification`. Отчёт: `build/reports/jacoco/test/html/index.html`.
 - Порог не снижать без разрешения владельца.
 

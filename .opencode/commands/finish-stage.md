@@ -11,7 +11,7 @@ description: Закрытие этапа — DoD из AGENTS.md §10, гейт p
 2. **Гейт precommit.** Выполни шаги 1–3 из `.opencode/commands/precommit.md`: `spotlessCheck`
    (при необходимости `spotlessApply` с разбором diff), `./gradlew test`, `git status --short`.
    Не коммить.
-3. **Покрытие.** Выполни `/coverage`. Порог 80% проверяется задачей `jacocoTestCoverageVerification`,
+3. **Покрытие.** Выполни `/coverage`. Порог покрытия (сейчас 60%, временно) проверяется задачей `jacocoTestCoverageVerification`,
    которая входит в `check` и `build`. Если порог не выполнен — перечисли классы без покрытия
    и новые сервисы этапа без unit-тестов. Не снижай порог без разрешения владельца.
 4. **Архитектура.** Тесты ArchUnit входят в `./gradlew test`; отдельно убедись, что новые
