@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-10-31)
 Phase: 2 of 7 (Контракт БКС)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-10-31 — память claude-mem работает (наблюдатель пишет, проверено 16:54); решения владельца по DISCOVERY §4 внесены
+Last activity: 2026-10-31 — память работает (проверено 19:39); хук JDK 25 проверен на отдельном сервере; фоновый сервис OpenCode не видит MOEX_JAVA25_HOME
 
 Progress: [█░░░░░░░░░] 14%
 
@@ -70,5 +70,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-10-31
-Stopped at: решения владельца по `DISCOVERY.md` §4 внесены; память работает (проверено 16:54); телеметрия отключена; модуль 2 закоммичен
-Resume file: docs/checkpoints/2026-10-31-1656-memory-ok.md
+Stopped at: README модуля 2 переписан, не закоммичен; ждём подтверждение перезапуска фонового сервиса OpenCode (MOEX_JAVA25_HOME) и коммит
+Resume file: docs/checkpoints/2026-10-31-1941-hook-check.md

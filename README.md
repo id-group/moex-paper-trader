@@ -35,7 +35,7 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 
 | Путь | Содержание |
 |---|---|
-| `opencode.json` | MCP-серверы (Context7) и правила `permissions`: что агенту можно править, а что только с подтверждением |
+| `opencode.json` | MCP-серверы (Context7), сжатие контекста (`compaction`) и правила `permissions`: что агенту можно править, а что только с подтверждением |
 | `.opencode/skills/` | спецификации, загружаются по задаче: `bcs-contract`, `bcs-portfolio`, `marketdata-modes`, `execution-model`, `java-conventions`, `testing` |
 | `.opencode/commands/` | slash-команды: `/tdd` — цикл red-green-refactor; `/coverage` — покрытие JaCoCo ≥ 60% (временно); `/precommit` — гейт перед коммитом; `/finish-stage` — DoD этапа |
 
@@ -43,65 +43,72 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 
 ## Модуль 2: агентно-ориентированный пайплайн (результаты для проверки)
 
-Ветка `feature/homework-2`. Коммиты модуля 2 — в истории ветки. Все изменения модуля 2 закоммичены (см. `git log`). Пуш в удалённый репозиторий — по решению владельца.
+Критерий модуля: подготовлено окружение под конкретный проект, в README описаны результаты для
+проверки. Ветка `feature/homework-2`; коммиты модуля — в истории ветки (`git log`). Пуш в
+удалённый репозиторий — по решению владельца.
+
+### Что составляет окружение проекта
+
+- `AGENTS.md` — правила агента: JDK 25 перед Gradle, запреты, DoD.
+- `opencode.json` — `permissions`: правки `docs/bcs-api/*` запрещены, кроме `*.json`; `.env`, `*.key`, `*.pem` запрещены; `git push` запрещён; `git commit` — с подтверждением. Сжатие контекста, MCP `context7`.
+- `.opencode/skills/` — 6 спецификаций проекта (контракт БКС, портфель, исполнение, рыночные данные, Java, тесты).
+- `.opencode/commands/` — `/checkpoint`, `/resume`, `/status` (модуль 2), `/precommit`, `/tdd`, `/coverage`, `/finish-stage`.
+- `.opencode/plugins/moex-hooks.ts` — хук: команды с `gradlew` получают JDK 25.
+- `.planning/` — проектный контекст GSD: `PROJECT`, `REQUIREMENTS`, `ROADMAP`, `STATE`, `DISCOVERY`.
+- `docs/` — roadmap, plan, progress, `ARCHITECTURE`, `security-checklist`, чек-пойнты.
+- Память агента — claude-mem (раздел «Память»).
 
 ### Итоги по заданию
 
-| Пункт задания | Статус | Где |
+| Пункт задания | Статус | Что проверено и где |
 |---|---|---|
-| gsd-core установлен, проект инициализирован: roadmap, plan, progress, architecture, security-checklist | ✅ | `.opencode/` (установщик); `docs/roadmap.md`, `docs/plan.md`, `docs/progress.md`, `docs/ARCHITECTURE.md`, `docs/security-checklist.md`; `.planning/` |
-| Память агента (claude-mem или аналог) | ✅ работает: наблюдатель пишет, поиск отвечает (проверено 2026-10-31, 16:54) | раздел «Память» |
-| Быстрые команды и auto hooks | ✅ | `.opencode/commands/checkpoint.md`, `resume.md`, `status.md`; `.opencode/plugins/moex-hooks.ts`; хуки GSD |
-| Управление контекстом (сжатие, чек-пойнты) и usage до/после | ✅ (снимки — отрисованный вывод `opencode stats`, см. ниже) | `opencode.json` (`compaction`); `docs/checkpoints/`; `docs/homework-2/` |
-| Discovery в GSD | ✅ по шаблонам GSD, с открытыми вопросами | `.planning/DISCOVERY.md` |
+| gsd-core установлен, проект инициализирован: roadmap, plan, progress, architecture, security-checklist | ✅ | GSD Core 1.19.0 в `.opencode/` (не в git). `docs/roadmap.md`, `docs/plan.md`, `docs/progress.md`, `docs/ARCHITECTURE.md`, `docs/security-checklist.md`, `.planning/`. Проверено: чистый клон ветки → установка → `git status` пустой |
+| Память агента (claude-mem или аналог) | ✅ | claude-mem 15.7.0 для OpenCode. Наблюдатель пишет (проверено 2026-10-31: последний успешный запрос 19:39, счётчик неудач 0). Поиск через MCP находит наблюдения. Не проверено: подача памяти в новой сессии |
+| Быстрые команды и auto hooks | ⚠️ | Команды видны в меню (проверено через API). Хук JDK 25 работает на сервере, запущенном с переменной `MOEX_JAVA25_HOME`: `gradlew --version` → `Launcher JVM: 25.0.4`. Фоновый сервис OpenCode эту переменную не видит, поэтому до исправления хук в нём не работает (раздел «Окружение») |
+| Управление контекстом (сжатие, чек-пойнты) и usage до/после | ⚠️ | Сжатие: `compaction` в `opencode.json` (проверено через `opencode debug config`). Чек-пойнты: `/checkpoint`, `/resume`. Usage до/после — текстовый вывод `opencode stats`, сохранённый как изображение, а не скриншот окна TUI. Эффект сжатия не измерен |
+| Discovery в GSD (или аналогичный) | ⚠️ | Выполнен по шаблонам GSD вручную. Интерактивный `gsd-new-project` с вопросами не запускался. Решения владельца внесены (`.planning/DISCOVERY.md`, §4) |
 
 ### Окружение
 
 - Node 24, npm 11, OpenCode 2.1.4, Docker 29, Python 3.14 (системный).
 - GSD Core ставится командой `npx @opengsd/gsd-core@1.19.0 --opencode --local --profile=standard --relative-includes` (версия закреплена). Флаг `--relative-includes` пишет относительные пути вместо путей этой машины: без него GSD ломается в другом checkout, например в git worktree. Пакет `get-shit-done-cc` в npm помечен как deprecated — не используется.
-- Глобальный побочный эффект установщика GSD: `~/.gsd/defaults.json` (`runtime: opencode`, `resolve_model_ids: omit`).
-- MCP-сервер `gsd` выключить у себя: в `.opencode/opencode.json` (файл генерируется установщиком и в git не хранится) у `mcp.gsd` поставить `"enabled": false`. Установщик при повторном запуске это значение сохраняет.
-- Bun 1.4.4 и uv 0.13.6 поставил установщик claude-mem; при откате их не удаляли.
-- Переменная пользователя `MOEX_JAVA25_HOME` — путь к JDK 25 на машине. Нужна для Gradle через агента (хук `moex-hooks.ts`). Задаётся один раз; после задания перезапустите OpenCode, иначе сервер не увидит её.
-
-### Структура проекта (артефакты курса)
-
-| Артефакт | Файл | Примечание |
-|---|---|---|
-| roadmap | `docs/roadmap.md` | источник истины по этапам |
-| roadmap (рабочая копия GSD) | `.planning/ROADMAP.md` | фазы 1–7 с требованиями и критериями |
-| plan | `docs/plan.md` | живой план |
-| progress | `docs/progress.md` и `.planning/STATE.md` | статус этапов и позиция GSD |
-| architecture | `docs/ARCHITECTURE.md` | ADR-1…ADR-10 |
-| security-checklist | `docs/security-checklist.md` | статусы S/A/N/D/G/L |
-| requirements | `.planning/REQUIREMENTS.md` | идентификаторы для трассировки |
+- Побочный эффект установщика: `~/.gsd/defaults.json` (`runtime: opencode`, `resolve_model_ids: omit`).
+- MCP-сервер `gsd` выключить локально: в `.opencode/opencode.json` (файл генерируется установщиком и в git не хранится) у `mcp.gsd` поставить `"enabled": false`. Установщик при повторном запуске это значение сохраняет.
+- Bun 1.4.4 и uv 0.13.6 поставил установщик claude-mem.
+- Переменная пользователя `MOEX_JAVA25_HOME` — путь к JDK 25 на машине. Её читают хук `moex-hooks.ts` и правила `AGENTS.md`.
+  - Фоновый сервис OpenCode получает переменные при своём запуске. Переменная, заданная после этого, в нём не видна. Симптом: `$env:MOEX_JAVA25_HOME` в командах агента пуст, `JAVA_HOME` остаётся на JDK 17.
+  - Исправление по документации OpenCode CLI (`opencode service`): `opencode service set env MOEX_JAVA25_HOME "<путь из переменной пользователя>"`, затем `opencode service restart`. Перезапуск прерывает открытые сессии.
+  - Статус на момент проверки: не применено к фоновому сервису на этой машине. Проверка после применения: `.\gradlew.bat --version` в OpenCode → `Launcher JVM: 25.x`.
 
 ### Память
 
-- **История (до решения владельца).** Установщик `claude-mem@15.7.0 --ide opencode --provider host` завершился ошибкой: режим `host` требует уже запущенного наблюдателя на `127.0.0.1:37777` или `37778`, а claude-mem его не запускает. Установку откатили (`npx claude-mem uninstall`): плагин OpenCode удалён, глобальный `opencode.json` возвращён к исходному виду, запись в PATH удалена. Папка данных `~/.claude-mem` осталась (её сохраняет установщик).
-- **Статус: работает** (проверено 2026-10-31, 16:54). `claude-mem@15.7.0` для OpenCode, провайдер `openai-compatible`, пресет `opencode-go`, модель `deepseek-v4.1-flash`, авто-редакция включена (`CLAUDE_MEM_REDACT_ENABLED=true`). До исправления OpenCode Go отклонял каждый запрос: `400 … This Go model requires Global regions. Select Global in your workspace's Privacy settings to use it.` До исправления счётчик неудач дошёл до 69 подряд (`~/.claude-mem/observer-health.json`). Запросы доходили до opencode.ai и отклонялись. **Что сделано:** в консоли OpenCode для workspace выбран регион **Global** (**Settings › Privacy → Regions**; менять может только owner или admin), воркер перезапущен.
-- **Ключ** лежит в `~/.claude-mem/.env` — вне репозитория, в git не попадает. Файл создан вручную; ключ не выводился ни в чат, ни в файлы проекта.
-- **Что уходит провайдеру.** Наблюдения о работе агента (сжатые записи вызовов инструментов и итогов) отправляются OpenCode Go. Установка глобальная: память ведётся для **всех** проектов OpenCode на этой машине. Регион Global снимает ограничение OpenCode «по умолчанию только Европа и США»; страны обработки в документации OpenCode не перечислены.
-- **Телеметрия.** Отключена целиком по решению владельца (`npx claude-mem telemetry disable`, 2026-10-31). Проверка: `npx claude-mem telemetry status` → `DISABLED`. Уже отправленные события не отзываются.
-- **Редакция.** Работает по регулярным выражениям: известные форматы ключей и токенов заменяются маркерами. Пароли и токены без префикса (`password=…`) не покрыты: `CLAUDE_MEM_REDACT_GENERIC_ENABLED=false`.
-- **Проверка.** `npx claude-mem status` → `Worker is running`. В `~/.claude-mem/observer-health.json` `consecutiveFailures` — 0, `lastSuccessAt` новее `lastErrorAt` (поле `lastErrorMessage` хранит последнюю ошибку и может не очищаться). В `GET http://127.0.0.1:37777/api/health` поле `ai.lastInteraction` перестаёт быть пустым после первых вызовов инструментов.
-- **На другой машине:** выбрать регион Global в настройках OpenCode Go, положить ключ в `~/.claude-mem/.env`, затем `npx --yes claude-mem@15.7.0 install --ide opencode`, `npx claude-mem start`, перезапустить OpenCode.
-- Работающий аналог уже сейчас: чек-пойнты (`/checkpoint` → `docs/checkpoints/`), `/resume` и `.planning/STATE.md`.
+- История: установщик `claude-mem@15.7.0 --provider host` завершился ошибкой: режим требует уже запущенного наблюдателя. Установку откатили и поставили заново с провайдером OpenCode Go.
+- Статус: работает (проверено 2026-10-31): наблюдатель пишет, поиск через MCP отвечает, телеметрия выключена.
+- Настройки в `~/.claude-mem/settings.json`: `CLAUDE_MEM_PROVIDER` = `openai-compatible`, `CLAUDE_MEM_OPENAI_COMPAT_PRESET` = `opencode-go`, `CLAUDE_MEM_OPENAI_COMPAT_MODEL` = `deepseek-v4.1-flash`, `CLAUDE_MEM_REDACT_ENABLED` = `true`.
+- Ключ OpenCode Go лежит в `~/.claude-mem/.env` (переменная `OPENAI_COMPAT_API_KEY`, по документации claude-mem). В git не попадает. Ключ не выводился ни в чат, ни в файлы проекта.
+- Регион: в OpenCode Go для workspace выбран **Global** (Settings › Privacy → Regions; менять может только owner или admin). Без него наблюдатель получал `400 … requires Global regions` и не писал.
+- Что уходит провайдеру: сжатые записи о вызовах инструментов и итогах. Регион Global снимает ограничение «по умолчанию только Европа и США»; страны обработки в документации OpenCode не перечислены.
+- Установка глобальная: память ведётся для всех проектов OpenCode на этой машине.
+- Телеметрия: отключена целиком (`npx claude-mem telemetry disable`, решение владельца, 2026-10-31). Уже отправленные события не отзываются.
+- Редакция секретов: регулярные выражения для известных форматов ключей и токенов. Пароли и токены без префикса не покрыты (`CLAUDE_MEM_REDACT_GENERIC_ENABLED=false`).
+- На другой машине: 1) выбрать регион Global в OpenCode Go; 2) положить ключ в `~/.claude-mem/.env`; 3) прописать четыре настройки из списка выше в `settings.json`; 4) `npx --yes claude-mem@15.7.0 install --ide opencode`, затем `npx claude-mem telemetry disable` и `npx claude-mem start`; 5) перезапустить фоновый сервис OpenCode (см. «Окружение»).
 
 ### Быстрые команды и хуки
 
-- `/checkpoint [заметка]` — сохраняет чек-пойнт в `docs/checkpoints/` (состояние, решения, следующий шаг).
-- `/resume [тема]` — восстанавливает контекст по последнему чек-пойнту, плану и памяти (claude-mem, см. раздел «Память»).
+- `/checkpoint [заметка]` — сохраняет чек-пойнт в `docs/checkpoints/`: состояние, решения, следующий шаг.
+- `/resume [тема]` — восстанавливает контекст по последнему чек-пойнту, плану, статусу и памяти.
 - `/status [этап]` — краткий статус и незакоммиченные файлы.
 - Уже были: `/precommit`, `/tdd`, `/coverage`, `/finish-stage`; из GSD: `/gsd-*`.
-- Хук `.opencode/plugins/moex-hooks.ts` (`shell.create.before`): для команд с `gradlew` выставляет `JAVA_HOME` на JDK 25; путь берётся только из переменной `MOEX_JAVA25_HOME`; если её нет, хук `JAVA_HOME` не меняет. Статус: плагин загружен и активен (проверено через API `plugin.list`). Поведение на реальном запуске Gradle не проверено.
-- Встроенный плагин GSD `.opencode/plugins/gsd-core.js`: активен (проверено); по документации GSD даёт защиту от промпт-инъекций, проверку read-before-edit и монитор контекста.
+- Хук `.opencode/plugins/moex-hooks.ts` (`shell.create.before`): для команд с `gradlew` ставит `JAVA_HOME` на JDK 25; путь берётся только из `MOEX_JAVA25_HOME`. Если переменной нет, `JAVA_HOME` не меняется.
+  - Проверено 2026-10-31 на сервере, запущенном с переменной: команда с `gradlew` получает JDK 25; команда без `gradlew` остаётся на JDK 17; `gradlew --version` печатает `Launcher JVM: 25.0.4`.
+  - Фоновый сервис в момент проверки переменной не видел (см. «Окружение»).
+- Встроенный плагин GSD `.opencode/plugins/gsd-core.js`: активен (проверено через API `plugin.list`).
 
 ### Управление контекстом и экономия токенов
 
-- `opencode.json`: `compaction: { auto: true, keep: { tokens: 20000 } }`. Порог — дефолтный (`buffer` 15%, не меньше 16k). Ключ `buffer` описан в документации V2, но сборка 2.1.4 его отбрасывает (проверено через `opencode api config.get`), поэтому в конфиге его нет.
-- Чек-пойнты: `/checkpoint` и `/resume`; в GSD также есть `pause-work` и `resume-work`.
-- Экономия: профиль `standard` вместо `full`; MCP `gsd` выключен; GSD-воркфлоу работают через CLI `gsd-tools.cjs`.
+- `opencode.json`: `compaction: { auto: true, keep: { tokens: 20000 } }`. Порог — дефолтный (буфер 15%, не меньше 16k). Ключ `buffer` сборка 2.1.4 не принимает (проверено через `opencode api config.get`), поэтому в конфиге его нет.
+- Чек-пойнты: `/checkpoint` и `/resume`; в GSD также `pause-work` и `resume-work`.
+- Экономия: профиль GSD `standard` вместо `full`; MCP `gsd` выключен; воркфлоу GSD работают через CLI `gsd-tools.cjs`.
 - Usage до и после: `docs/homework-2/usage-before.png` и `usage-after.png` (+ `.txt`). Это отрисованный вывод `opencode stats --project . --days 30 --cost --models`, а не скриншот окна TUI. Снимок «до» сделан после установки GSD и до настройки сжатия.
 
 | Показатель (30 дней, проект) | До | После |
@@ -116,30 +123,33 @@ http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
 
 ### Discovery
 
-- Файлы `.planning/`: `PROJECT.md` (ценность, требования, ограничения, решения), `REQUIREMENTS.md` (идентификаторы BKS-*, CORE-*, MD-*, EX-*, RPT-*, INT-*), `ROADMAP.md` (фазы 1–7 с критериями), `STATE.md` (позиция: фаза 2, готовность к планированию), `DISCOVERY.md` (источники, допущения, открытые вопросы).
-- Метод: шаблоны GSD плюс разбор существующих документов. Интерактивные вопросы GSD клиент не показал, поэтому решения записаны как допущения и ждут подтверждения.
-- Открытые вопросы владельцу — `.planning/DISCOVERY.md` §4.
+- Файлы `.planning/`: `PROJECT.md` (ценность, требования, ограничения, решения), `REQUIREMENTS.md` (идентификаторы BKS-*, CORE-*, MD-*, EX-*, RPT-*, INT-*), `ROADMAP.md` (фазы 1–7 с критериями), `STATE.md` (позиция: фаза 2), `DISCOVERY.md` (источники, допущения, решения владельца).
+- Метод: шаблоны GSD плюс разбор существующих документов. Интерактивные вопросы GSD клиент не показал: вопросы записаны в `DISCOVERY.md` §4, владелец ответил, решения внесены в документы.
 
 ### Git и установка GSD
 
-- В git лежат наши файлы: `.planning/`, `docs/`, `README.md`, общий `opencode.json` в корне (сжатие контекста, правила, MCP `context7`), команды `checkpoint`, `resume`, `status`, `precommit`, `tdd`, `coverage`, `finish-stage`, плагин `moex-hooks.ts`, наши skills (`bcs-*`, `execution-model`, `java-conventions`, `marketdata-modes`, `testing`).
-- Файлы GSD Core в git не хранятся: установщик генерирует их на каждой машине. Это `.opencode/gsd-core/`, `gsd-*` skills, commands и agents, `hooks/`, `scripts/`, манифесты и `.opencode/opencode.json`. Правила для них в `.gitignore`.
-- Почему так: при переустановке установщик меняет около 60 файлов `workflows/*.md` (случайные маркеры heredoc) и манифест, а в `.opencode/opencode.json` дописывает абсолютные пути. В git это давало бы постоянный шум. Подробности: `.planning/DISCOVERY.md`, раздел 6.
-- Локальные настройки (MCP `gsd` и подобное) не коммитятся: они живут в сгенерированном `.opencode/opencode.json`.
+- В git лежат наши файлы: `.planning/`, `docs/`, `README.md`, общий `opencode.json` в корне, команды `checkpoint`, `resume`, `status`, `precommit`, `tdd`, `coverage`, `finish-stage`, плагин `moex-hooks.ts`, наши skills.
+- Файлы GSD Core в git не хранятся: `.opencode/gsd-core/`, `gsd-*` skills, commands и agents, `hooks/`, `scripts/`, манифесты и `.opencode/opencode.json`. Правила для них — в `.gitignore`.
+- Почему: при переустановке установщик меняет около 60 файлов `workflows/*.md` (случайные маркеры heredoc) и манифест, а в `.opencode/opencode.json` дописывает абсолютные пути. В git это давало бы постоянный шум. Подробности: `.planning/DISCOVERY.md`, раздел 6.
 
 ### Как проверить
 
-1. Открыть OpenCode в каталоге проекта и набрать `/`: должны быть `checkpoint`, `resume`, `status`, а также `gsd-*`.
-2. `opencode debug config`: в блоке `compaction` есть `keep.tokens: 20000`; у `mcp.gsd` стоит `disabled: true`.
-3. `docs/homework-2/usage-before.png` и `usage-after.png` — снимки usage.
-4. `.planning/DISCOVERY.md` — discovery, допущения и открытые вопросы.
-5. `docs/security-checklist.md` — статусы требований безопасности.
-6. Память: `npx claude-mem status` → `Worker is running`; после перезапуска OpenCode инструменты набора `claude-mem` (например, `work_state_read`) отвечают без ошибки.
+Каждый пункт — команда и ожидаемый результат.
+
+1. **Команды.** В OpenCode в каталоге проекта набрать `/`. Ожидаемо: `checkpoint`, `resume`, `status`, `precommit`, `tdd`, `coverage`, `finish-stage` и команды `gsd-*`.
+2. **Сжатие.** `opencode debug config` → блок `compaction` → `keep.tokens: 20000`.
+3. **MCP `gsd` выключен.** `opencode debug config` → `mcp.gsd` → `disabled: true`. Источник — локальный `.opencode/opencode.json` (не в git) с `"enabled": false`.
+4. **Хук JDK 25.** В OpenCode выполнить `.\gradlew.bat --version`. Ожидаемо: `Launcher JVM: 25.x`. Если `17` — переменная не видна фоновому сервису, см. «Окружение».
+5. **Память.** `npx claude-mem status` → `Worker is running`. `npx claude-mem telemetry status` → `DISABLED`. В `~/.claude-mem/observer-health.json` поле `consecutiveFailures` = 0, `lastSuccessAt` новее `lastErrorAt`.
+6. **Discovery и безопасность.** `.planning/DISCOVERY.md` (решения владельца в §4); `docs/security-checklist.md`.
+7. **Воспроизводимость.** Клонировать ветку, установить GSD командой из раздела «Окружение»: `git status` должен остаться пустым.
 
 ### Известные ограничения
 
-- Память: работает (проверено 2026-10-31). Телеметрия claude-mem отключена.
-- Хук `JAVA_HOME` не проверен на реальном запуске Gradle.
+- Фоновый сервис OpenCode не видит `MOEX_JAVA25_HOME`. Исправление описано в «Окружении»; на этой машине ещё не применено, потому что перезапуск прерывает текущую сессию.
+- Снимки usage — текстовый вывод, не скриншот окна TUI.
+- Эффект сжатия не измерен: снимки накопительные.
 - `compaction.buffer` не поддерживается сборкой 2.1.4: порог сжатия дефолтный.
-- Снимки usage — отрисованный текст, не скриншот окна.
-- `opencode.local.json` OpenCode V2 не читает: проверено через `opencode debug config` (файл и в корне, и в `.opencode/` в конфигурацию не попал). Личные настройки — в глобальном `~/.config/opencode/opencode.json` (проектный конфиг его переопределяет) или в переменных окружения, например `MOEX_JAVA25_HOME`.
+- Интерактивный `gsd-new-project` не запускался: discovery выполнен по шаблонам GSD.
+- Наблюдения памяти отправляются провайдеру OpenCode Go (регион Global).
+- `opencode.local.json` OpenCode V2 не читает (проверено через `opencode debug config`). Личные настройки — в глобальном `~/.config/opencode/opencode.json` (проектный конфиг его переопределяет) или в переменных окружения.
