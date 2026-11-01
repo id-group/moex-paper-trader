@@ -14,7 +14,7 @@ import ru.moex.papertrader.core.domain.Trade;
 import ru.moex.papertrader.core.domain.TradeSearchCriteria;
 import ru.moex.papertrader.infra.services.exception.InvalidRequestException;
 
-/** РњР°РїРїРёРЅРі СЃРґРµР»РѕРє РјРµР¶РґСѓ РєРѕРЅС‚СЂР°РєС‚РѕРј Р‘РљРЎ Рё РґРѕРјРµРЅРѕРј core. */
+/** Маппинг сделок между контрактом БКС и доменом core. */
 @Component
 public class BksTradeMapper {
 
@@ -66,7 +66,6 @@ public class BksTradeMapper {
       return null;
     }
     return Side.fromCode(code)
-        .orElseThrow(
-            () -> new InvalidRequestException("side РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ \"1\" РёР»Рё \"2\""));
+        .orElseThrow(() -> new InvalidRequestException("side должен быть \"1\" или \"2\""));
   }
 }

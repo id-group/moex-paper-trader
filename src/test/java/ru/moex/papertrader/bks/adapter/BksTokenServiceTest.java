@@ -53,6 +53,26 @@ class BksTokenServiceTest {
   }
 
   @Test
+  void rejectsMissingRefreshToken() {
+    BksTokenService service = service(Duration.ofHours(24));
+
+    assertThatThrownBy(() -> service.exchange("trade-api-write", null, "refresh_token"))
+        .isInstanceOf(BksInvalidGrantException.class)
+        .isNotInstanceOf(NullPointerException.class)
+        .hasMessageContaining("refresh_token");
+  }
+
+  @Test
+  void rejectsBlankRefreshToken() {
+    BksTokenService service = service(Duration.ofHours(24));
+
+    assertThatThrownBy(() -> service.exchange("trade-api-write", "   ", "refresh_token"))
+        .isInstanceOf(BksInvalidGrantException.class)
+        .isNotInstanceOf(NullPointerException.class)
+        .hasMessageContaining("refresh_token");
+  }
+
+  @Test
   void rejectsClientMismatch() {
     BksTokenService service = service(Duration.ofHours(24));
 

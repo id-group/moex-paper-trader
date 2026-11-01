@@ -56,6 +56,16 @@ class BksTokenApiTest extends BksApiTestSupport {
   }
 
   @Test
+  void rejectsRequestWithoutRefreshToken() {
+    ApiResponse response =
+        postForm(TOKEN_PATH, "client_id=" + WRITE_CLIENT + "&grant_type=refresh_token");
+
+    assertThat(response.status()).isEqualTo(400);
+    assertThat(response.json().path("error").asText()).isEqualTo("invalid_grant");
+    assertThat(response.json().path("error_description").asText()).isNotBlank();
+  }
+
+  @Test
   void rejectsWrongGrantType() {
     ApiResponse response =
         postForm(

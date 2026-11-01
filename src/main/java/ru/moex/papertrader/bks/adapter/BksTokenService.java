@@ -46,6 +46,10 @@ public class BksTokenService {
     if (!WRITE_CLIENT.equals(clientId) && !READ_CLIENT.equals(clientId)) {
       throw new BksInvalidGrantException("Неизвестный client_id");
     }
+    // Неизменяемая карта бросает NPE на get(null), поэтому пустой токен отсекаем заранее
+    if (refreshToken == null || refreshToken.isBlank()) {
+      throw new BksInvalidGrantException("refresh_token не должен быть пустым");
+    }
     BksProperties.RefreshToken configured = refreshTokens.get(refreshToken);
     if (configured == null || !clientId.equals(configured.clientId())) {
       throw new BksInvalidGrantException("Неверный refresh_token или client_id");

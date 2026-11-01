@@ -55,7 +55,9 @@ class BksTradeMapperTest {
     assertThatThrownBy(
             () ->
                 mapper.toCriteria(new TradesSearchRequest("9", null, null, null, null, null, null)))
-        .isInstanceOf(InvalidRequestException.class);
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessageContaining("side")
+        .hasMessageContaining("должен быть \"1\" или \"2\"");
   }
 
   @Test
