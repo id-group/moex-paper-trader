@@ -5,7 +5,8 @@
 агентов-реализаторов — в `docs/agent-briefs/`.
 
 1. ✅ Скелет single-project (сборка, health, ArchUnit, Spotless) — готово
-2. Контракт БКС: DTO/контроллеры/авторизация поверх заглушек core — `docs/agent-briefs/stage-2-bks-contract.md`
+2. ✅ Контракт БКС: DTO/контроллеры/авторизация поверх заглушек core — готово (отчёт
+   `docs/agent-briefs/stage-2-report.md`)
 3. Домен + виртуальный портфель + БД — `docs/agent-briefs/stage-3-portfolio.md`
 4. Рыночные данные LIVE/RECORD/REPLAY — `docs/agent-briefs/stage-4-marketdata.md`
 5. Модель исполнения — `docs/agent-briefs/stage-5-execution.md`

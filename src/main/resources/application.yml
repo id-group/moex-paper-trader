@@ -1,11 +1,87 @@
 # Конфигурация эмулятора брокера.
-# Этап 1: минимальный сервис с health check.
+# Секреты — только из переменных окружения (значения по умолчанию пустые).
 server:
   port: 8080
 
 spring:
   application:
     name: broker-emulator
+  jackson:
+    datatype:
+      datetime:
+        write-dates-as-timestamps: false
+
+# Actuator: наружу выставлен только health (решение по временному пункту №1, этап 2).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+emulator:
+  portfolio:
+    account: PAPER-0001
+    initial-cash: 1000000.00
+    currency: RUB
+  marketdata:
+    stub:
+      instruments:
+        - ticker: SBER
+          class-code: TQBR
+          type: STOCK
+          short-name: Сбербанк
+          display-name: Сбербанк
+          isin: RU0009029540
+          lot-size: 10
+          minimum-step: 0.01
+          currency: RUB
+          base-price: 285.50
+        - ticker: GAZP
+          class-code: TQBR
+          type: STOCK
+          short-name: Газпром
+          display-name: Газпром
+          isin: RU0007661625
+          lot-size: 10
+          minimum-step: 0.01
+          currency: RUB
+          base-price: 165.20
+        - ticker: LKOH
+          class-code: TQBR
+          type: STOCK
+          short-name: ЛУКОЙЛ
+          display-name: ЛУКОЙЛ
+          isin: RU0009024277
+          lot-size: 1
+          minimum-step: 0.5
+          currency: RUB
+          base-price: 7100.00
+        - ticker: SiU6
+          class-code: SPBFUT
+          type: FUTURES
+          short-name: Si-12.26
+          display-name: Фьючерс на доллар США
+          isin: ""
+          lot-size: 1
+          minimum-step: 1
+          currency: RUB
+          base-price: 90000
+  brokers:
+    bks:
+      # Префикс монтирования API брокера: контрактный /api/v1/x -> /api/bks/v1/x.
+      base-path: /api/bks
+      auth:
+        access-token-ttl: 24h
+        refresh-token-ttl: 90d
+        # Решение владельца: refresh-токены только из переменных окружения.
+        refresh-tokens:
+          - token: ${BKS_REFRESH_TOKEN_TRADE:}
+            client-id: trade-api-write
+          - token: ${BKS_REFRESH_TOKEN_READ:}
+            client-id: trade-api-read
+      rate-limit:
+        enabled: false
+        requests-per-second: 10
 
 logging:
   level:

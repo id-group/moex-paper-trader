@@ -25,6 +25,26 @@
   OpenCode (`opencode service set env ...`), сервис перезапущен; `.\gradlew.bat --version`
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.
 
+- **Этап 2 завершён — Контракт БКС (HTTP MVP)** (2026-11-01). Отчёт:
+  `docs/agent-briefs/stage-2-report.md`.
+  - `core/domain` + `core/marketdata`: `Order`/`Instrument`/`PortfolioSnapshot`, статусы,
+    порт `MarketDataProvider` — чистая Java без Spring.
+  - `bks/contract`: DTO — покамерное зеркало схем снапшота (`ErrorResponse`, токены,
+    заявки, сделки, котировки/стакан/свечи, справочник, портфель/лимиты).
+  - `bks/api`: контроллеры под `/api/bks` (token, portfolio, limits, orders create/cancel/
+    status/search sync+async, trades/search, quotes, order-book, candles-chart,
+    instruments/by-tickers, trading-schedule/status), Bearer-фильтр с правами trade/read-only,
+    `@RestControllerAdvice` → `ErrorResponse`.
+  - `bks/adapter`: обмен refresh→access (TTL 24 ч, refresh 90 дней), маппинг DTO ↔ core.
+  - `infra/services`: in-memory заявки/сделки, портфель (кэш + блокировки под заявки),
+    конфигурируемая заглушка рыночных данных.
+  - Проверка: `./gradlew clean build` зелёный; 119 тестов; JaCoCo bundle 92.8% инструкций /
+    94.0% строк; сквозной сценарий `bootRun` token → create → status → portfolio → cancel
+    пройден (транскрипт в отчёте).
+  - Закрыты временные решения №1 (Actuator: только `/actuator/health`) и №7 (префикс
+    `emulator.brokers.bks.base-path`, по умолчанию `/api/bks`). Решение №2 (in-memory)
+    остаётся в силе до этапа 3.
+
 ## Открытые хвосты
 
 - Индекс git: устаревшие записи `app/` сняты с индекса (модуль 2). Закрыто.

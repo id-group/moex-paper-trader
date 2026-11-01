@@ -5,16 +5,19 @@
 
 ## Сейчас
 
-- [ ] Этап 2 — Контракт БКС (HTTP MVP): бриф `docs/agent-briefs/stage-2-bks-contract.md`;
-      перед началом загрузить skill `bcs-contract`.
+- [ ] Этап 3 — домен + виртуальный портфель + PostgreSQL: бриф
+      `docs/agent-briefs/stage-3-portfolio.md`; перед началом загрузить skills
+      `bcs-portfolio`, `execution-model`.
+
+## Дальше
+
+- [ ] Этапы 4–7 — см. `docs/roadmap.md`.
+
+## Закрытые пункты
+
 - [x] Подготовка: индекс git приведён в порядок (устаревшие записи `app/` сняты с индекса).
 - [x] Фоновый сервис OpenCode: `opencode service set env MOEX_JAVA25_HOME` выполнен,
       сервис перезапущен; проверка `.\gradlew.bat --version` → `Launcher JVM: 25.0.4`
       (закрыто 2026-11-01, подтверждение владельца получено).
-- [x] Память агента (claude-mem 15.7.0): работает, наблюдатель пишет (проверено 16:54). Телеметрия отключена (решение владельца).
-
-## Дальше
-
-- [ ] Этап 3 — домен + виртуальный портфель + PostgreSQL: бриф
-      `docs/agent-briefs/stage-3-portfolio.md`; skills `bcs-portfolio`, `execution-model`.
-- [ ] Этапы 4–7 — см. `docs/roadmap.md`.
+- [x] Память агента (claude-mem 15.7.0): работает, наблюдатель пишет (проверено 16:54).
+      Телеметрия отключена (решение владельца).

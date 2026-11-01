@@ -1,0 +1,10 @@
+# Профиль тестов: фиксированные refresh-токены вместо переменных окружения.
+emulator:
+  brokers:
+    bks:
+      auth:
+        refresh-tokens:
+          - token: test-trade-refresh-token
+            client-id: trade-api-write
+          - token: test-read-refresh-token
+            client-id: trade-api-read
