@@ -5,15 +5,16 @@
 
 ## Сейчас
 
-- [ ] Этап 3 — домен + виртуальный портфель + PostgreSQL: бриф
-      `docs/agent-briefs/stage-3-portfolio.md`; перед началом загрузить skills
-      `bcs-portfolio`, `execution-model`.
+- [ ] Этапы 4–7 — см. `docs/roadmap.md` (этап 4 — отдельное окно после коммита этапа 3).
 
 ## Дальше
 
 - [ ] Этапы 4–7 — см. `docs/roadmap.md`.
 
 ## Закрытые пункты
+
+- [x] Этап 3 — домен + виртуальный портфель + PostgreSQL (коммит `68c4c9c`,
+      2026-11-02; бриф `docs/agent-briefs/stage-3-portfolio.md`).
 
 - [x] Подготовка: индекс git приведён в порядок (устаревшие записи `app/` сняты с индекса).
 - [x] Фоновый сервис OpenCode: `opencode service set env MOEX_JAVA25_HOME` выполнен,
