@@ -25,8 +25,8 @@
   OpenCode (`opencode service set env ...`), сервис перезапущен; `.\gradlew.bat --version`
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.
 
-- **Этап 2 завершён — Контракт БКС (HTTP MVP)** (2026-11-01). Отчёт:
-  `docs/agent-briefs/stage-2-report.md`.
+- **Этап 2 завершён — Контракт БКС (HTTP MVP)** (2026-11-01; закрыт после ревью —
+  2026-11-02). Отчёт: `docs/agent-briefs/stage-2-report.md`.
   - `core/domain` + `core/marketdata`: `Order`/`Instrument`/`PortfolioSnapshot`, статусы,
     порт `MarketDataProvider` — чистая Java без Spring.
   - `bks/contract`: DTO — покамерное зеркало схем снапшота (`ErrorResponse`, токены,
@@ -38,9 +38,14 @@
   - `bks/adapter`: обмен refresh→access (TTL 24 ч, refresh 90 дней), маппинг DTO ↔ core.
   - `infra/services`: in-memory заявки/сделки, портфель (кэш + блокировки под заявки),
     конфигурируемая заглушка рыночных данных.
-  - Проверка: `./gradlew clean build` зелёный; 119 тестов; JaCoCo bundle 92.8% инструкций /
+  - Проверка: `./gradlew clean build` зелёный; 124 теста; JaCoCo bundle 92.9% инструкций /
     94.0% строк; сквозной сценарий `bootRun` token → create → status → portfolio → cancel
     пройден (транскрипт в отчёте).
+  - Исправления после ревью (2026-11-02): `17e043c` — 400 `invalid_grant` при пустом
+    `refresh_token`, восстановлена кодировка `BksTradeMapper`; `33c21b4` — очистка
+    просроченных access-токенов в `BksTokenService`. Спорные места контракта зафиксированы
+    временными решениями №10–12 (auth-first 401/404, дубль `clientOrderId` → 422
+    `VALIDATION_ERROR`, неподдержанные `orderTypes` в search → пустая выборка).
   - Закрыты временные решения №1 (Actuator: только `/actuator/health`) и №7 (префикс
     `emulator.brokers.bks.base-path`, по умолчанию `/api/bks`). Решение №2 (in-memory)
     остаётся в силе до этапа 3.
