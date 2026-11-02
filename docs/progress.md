@@ -26,7 +26,7 @@
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.
 
 - **Этап 4 завершён — рыночные данные LIVE/RECORD/REPLAY** (2026-11-02; коммит
-  `7c0b7fd`). Отчёт: `docs/agent-briefs/stage-4-report.md`.
+  `7c0b7fd`, решения владельца — `d27d953`). Отчёт: `docs/agent-briefs/stage-4-report.md`.
   - Контрактное ядро: порты `Clock` (`SystemClock`/`VirtualClock`), `TradingCalendar`,
     снапшоты `MarketDataSnapshot` (QUOTE/ORDER_BOOK/TRADE), `Trade`/`TradingDay`, методы
     `trades`/`adv`/`tradingDays` в `MarketDataProvider`.
@@ -40,11 +40,17 @@
   - Режимы `emulator.marketdata.mode` (STUB/LIVE/RECORD/REPLAY) в `MarketDataConfiguration`;
     `ReplayClockAdvancer` продвигает виртуальный таймлайн; миграция всех потребителей времени
     на порт `Clock`; ArchUnit — 10 правил (системные часы читает только infra).
-  - Проверка: `./gradlew test` — 548 тестов (74 сюиты), 0 падений; spotlessCheck зелёный.
+  - Решения владельца (коммит `d27d953`): авторизация AlgoPack — `Authorization: Bearer
+    <APIKEY>` (ключ только из env `ALGO_PACK_TOKEN`); M5/M15/M30/H4 не агрегируются (пустая
+    серия до тарифа); границы сессии дня — из минутных свечей MOEX ISS (открытие — первый бар
+    дня, закрытие — последний бар вечернего фрагмента с 18:00 МСК), настройки
+    `session-open`/`session-close` остались fallback.
+  - Проверка: `./gradlew test` — 549 тестов (74 сюиты), 0 падений; spotlessCheck зелёный.
   - LIVE-демонстрация: справочник/свечи/календарь — реальные данные ISS (curl-лог в отчёте);
     стакан требует подписки ISS или токена AlgoPack (зафиксировано как ограничение).
   - Отклонения и решения — 12 пунктов в отчёте этапа 4 (endpoint календаря ISS, домен
-    iss.moex.com, окно сессии из конфига, баг формата from/till свечей и др.).
+    iss.moex.com, баг формата from/till свечей и др.); три открытых вопроса закрыты
+    решениями владельца (см. выше).
 
 - **Этап 2 завершён — Контракт БКС (HTTP MVP)** (2026-11-01; закрыт после ревью —
   2026-11-02). Отчёт: `docs/agent-briefs/stage-2-report.md`.
