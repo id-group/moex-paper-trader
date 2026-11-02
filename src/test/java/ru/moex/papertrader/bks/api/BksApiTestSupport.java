@@ -11,6 +11,7 @@ import java.util.Map;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
+import ru.moex.papertrader.PostgresContainerSupport;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -22,7 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-abstract class BksApiTestSupport {
+abstract class BksApiTestSupport extends PostgresContainerSupport {
 
   protected static final String BASE_PATH = "/api/bks";
   protected static final String TOKEN_PATH =

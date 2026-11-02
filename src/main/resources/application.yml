@@ -6,6 +6,16 @@ server:
 spring:
   application:
     name: broker-emulator
+  # PostgreSQL 18: параметры переопределяются переменными окружения, пароль по умолчанию пустой.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/papertrader}
+    username: ${DB_USERNAME:papertrader}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Схему задают только миграции Flyway; Hibernate лишь сверяет с ней сущности.
+      ddl-auto: validate
   jackson:
     datatype:
       datetime:

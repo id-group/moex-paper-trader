@@ -1,8 +1,6 @@
 package ru.moex.papertrader.infra.services;
 
 import java.time.Clock;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -10,7 +8,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import org.springframework.stereotype.Service;
 import ru.moex.papertrader.core.domain.Instrument;
 import ru.moex.papertrader.core.domain.NewOrder;
 import ru.moex.papertrader.core.domain.Order;
@@ -23,18 +20,14 @@ import ru.moex.papertrader.infra.services.exception.InvalidRequestException;
 import ru.moex.papertrader.infra.services.exception.ResourceNotFoundException;
 
 /**
- * In-memory реализация хранилища заявок (временное решение, этап 3 заменит на JPA/PostgreSQL).
+ * Эталонная in-memory реализация хранилища заявок этапа 2.
+ *
+ * <p>В приложении не используется: бин {@link OrderService} предоставляет {@link
+ * JpaOrderServiceImpl}. Класс сохранён как образец поведения и предмет unit-тестов.
  *
  * <p>Биржевой идентификатор формируется по контракту БКС: {@code ГГММДД-КодКласса-Номер}.
  */
-@Service
 public class InMemoryOrderServiceImpl implements OrderService {
-
-  private static final ZoneId MOSCOW = ZoneId.of("Europe/Moscow");
-  private static final DateTimeFormatter ORDER_ID_DATE =
-      DateTimeFormatter.ofPattern("yyyyMMdd").withZone(MOSCOW);
-  private static final long ORDER_ID_SEQUENCE_BASE = 796_285_400_000L;
-  private static final List<String> DEFAULT_SORT = List.of("orderDateTime,asc");
 
   private final Map<UUID, Order> byClientOrderId = new ConcurrentHashMap<>();
   private final Map<String, Order> byExchangeOrderId = new ConcurrentHashMap<>();
@@ -74,12 +67,7 @@ public class InMemoryOrderServiceImpl implements OrderService {
             "Заявка с clientOrderId " + request.clientOrderId() + " уже существует");
       }
       long orderNum = orderSequence.incrementAndGet();
-      String exchangeOrderId =
-          ORDER_ID_DATE.format(clock.instant())
-              + "-"
-              + instrument.classCode()
-              + "-"
-              + (ORDER_ID_SEQUENCE_BASE + orderNum);
+      String exchangeOrderId = OrderServiceSupport.exchangeOrderId(clock, instrument, orderNum);
       Order order =
           Order.accept(
               request,
@@ -117,8 +105,8 @@ public class InMemoryOrderServiceImpl implements OrderService {
         filtered.add(order);
       }
     }
-    filtered.sort(comparator(sortSpecs));
-    return paginate(filtered, page, size);
+    filtered.sort(OrderServiceSupport.comparator(sortSpecs));
+    return OrderServiceSupport.paginate(filtered, page, size);
   }
 
   @Override
@@ -149,49 +137,5 @@ public class InMemoryOrderServiceImpl implements OrderService {
     } catch (IllegalArgumentException exception) {
       throw new InvalidRequestException("orderId должен быть UUID при orderIdType=1", exception);
     }
-  }
-
-  private Comparator<Order> comparator(List<String> sortSpecs) {
-    List<String> specs = sortSpecs == null || sortSpecs.isEmpty() ? DEFAULT_SORT : sortSpecs;
-    Comparator<Order> comparator = null;
-    for (String spec : specs) {
-      String[] parts = spec.split(",", -1);
-      if (parts.length != 2) {
-        throw new InvalidRequestException("Некорректная сортировка: " + spec);
-      }
-      Comparator<Order> current = fieldComparator(parts[0].trim());
-      String direction = parts[1].trim();
-      if ("desc".equalsIgnoreCase(direction)) {
-        current = current.reversed();
-      } else if (!"asc".equalsIgnoreCase(direction)) {
-        throw new InvalidRequestException("Некорректное направление сортировки: " + direction);
-      }
-      comparator = comparator == null ? current : comparator.thenComparing(current);
-    }
-    return comparator == null ? Comparator.comparingLong(Order::orderNum) : comparator;
-  }
-
-  private Comparator<Order> fieldComparator(String field) {
-    return switch (field) {
-      case "orderDateTime" -> Comparator.comparing(Order::createdAt);
-      case "updateDateTime" -> Comparator.comparing(Order::updatedAt);
-      case "ticker" -> Comparator.comparing(order -> order.instrument().ticker());
-      case "classCode" -> Comparator.comparing(order -> order.instrument().classCode());
-      case "orderType" -> Comparator.comparing(order -> order.orderType().code());
-      case "side" -> Comparator.comparing(order -> order.side().code());
-      default -> throw new InvalidRequestException("Неподдерживаемое поле сортировки: " + field);
-    };
-  }
-
-  private PageResult<Order> paginate(List<Order> orders, int page, int size) {
-    long totalRecords = orders.size();
-    int totalPages = (int) ((totalRecords + size - 1) / size);
-    long offset = (long) page * size;
-    if (offset >= totalRecords) {
-      return new PageResult<>(List.of(), totalRecords, totalPages);
-    }
-    int fromIndex = (int) offset;
-    int toIndex = (int) Math.min(offset + size, totalRecords);
-    return new PageResult<>(orders.subList(fromIndex, toIndex), totalRecords, totalPages);
   }
 }

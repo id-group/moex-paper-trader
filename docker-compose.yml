@@ -1,0 +1,31 @@
+# Локальный PostgreSQL 18 для разработки.
+# Пароль передаётся только через переменную окружения DB_PASSWORD и в git не хранится.
+# Значения DB_URL / DB_USERNAME по умолчанию совпадают с src/main/resources/application.yml.
+services:
+  postgres:
+    image: postgres:18
+    container_name: papertrader-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: papertrader
+      POSTGRES_USER: papertrader
+      # Без DB_PASSWORD compose отказывается стартовать (обязательная переменная).
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    ports:
+      # Порт хоста можно переопределить переменной DB_PORT, по умолчанию 5432.
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      # С postgres:18 точка монтирования тома — /var/lib/postgresql
+      # (PGDATA внутри образа: /var/lib/postgresql/18/docker).
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      # Готовность принимает пользователь и БД из POSTGRES_USER / POSTGRES_DB.
+      test: ["CMD-SHELL", "pg_isready -U papertrader -d papertrader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  # Именованный том: данные сохраняются между перезапусками контейнера.
+  pgdata:

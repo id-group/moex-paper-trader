@@ -1,5 +1,6 @@
 package ru.moex.papertrader.bks.api;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -12,11 +13,17 @@ import ru.moex.papertrader.bks.contract.ErrorType;
 @Component
 public class BksErrorFactory {
 
+  private final Clock clock;
+
+  public BksErrorFactory(Clock clock) {
+    this.clock = clock;
+  }
+
   public ErrorResponse error(ErrorType type, String field, String message) {
     Map<String, Object> payload =
         message == null ? null : Map.of("message", Map.of("text", message));
     return new ErrorResponse(
-        System.currentTimeMillis(),
+        clock.millis(),
         UUID.randomUUID().toString(),
         type,
         List.of(new ErrorDetail(type.name(), field, payload)),

@@ -67,5 +67,6 @@
 ## 7. Проверки перед сдачей этапа
 
 - `./gradlew spotlessCheck test jacocoTestCoverageVerification` зелёный.
-- С этапа 3: миграции Flyway версионные, запросы параметризованы (Spring Data JPA).
+- ✅ С этапа 3: миграции Flyway версионные (`db/migration/V1__init.sql`), запросы
+  параметризованы (Spring Data JPA).
 - Чек-лист пересматривается при закрытии этапа (`/finish-stage`).

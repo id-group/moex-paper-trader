@@ -174,9 +174,41 @@ trade / read-only — как у БКС), обмен на access-токен (JWT-
 `infra/model` (сущности БД), `infra/dto`, `infra/mapper` (MapStruct: сущность ↔ домен core),
 `infra/services` (оркестрация: загрузка/сохранение состояния + вызов чистой доменной логики
 core). Зависимость односторонняя: `infra → core`, контролируется ArchUnit.
-Таблицы (черновик): `accounts`, `instruments`, `orders`, `order_events` (лог статусов),
-`fills`, `positions_daily`, `nav_daily`, `market_data_snapshots` (записи RECORD),
-`strategy_tags`, `backtest_results`. Миграции — кандидат Flyway (подтвердить на этапе 3).
+
+Схему создаёт и изменяет только Flyway (`src/main/resources/db/migration/V1__init.sql`);
+`spring.jpa.hibernate.ddl-auto=validate` — Hibernate лишь сверяет сущности со схемой. Деньги —
+`NUMERIC(19,2)`, цены и средние цены — `NUMERIC(19,6)`, время — только
+`TIMESTAMP WITH TIME ZONE`.
+
+| Таблица | Ключевые колонки и ограничения |
+|---|---|
+| `accounts` | `account_id VARCHAR(64) PK`, `created_at NOT NULL DEFAULT now()` |
+| `account_balances` | `id BIGSERIAL PK`, `account_id → accounts`, `currency VARCHAR(8)`, `cash/locked NUMERIC(19,2) NOT NULL DEFAULT 0`, `updated_at`; `UNIQUE (account_id, currency)` |
+| `instruments` | `id BIGSERIAL PK`, `ticker`, `class_code`, `type`, `short_name/display_name/isin`, `lot_size/minimum_step NUMERIC(19,6)`, `currency`; `UNIQUE (ticker, class_code)` |
+| `orders` | `order_id VARCHAR(64) PK`, `order_num BIGINT UNIQUE`, `client_order_id UUID UNIQUE`, `account_id → accounts`, `instrument_id → instruments`, `side/order_type/time_in_force/status`, `quantity BIGINT`, `price NUMERIC(19,6)`, `executed_quantity BIGINT`, `average_price NUMERIC(19,6)`, `created_at/updated_at` |
+| `fills` | `id BIGSERIAL PK`, `order_id → orders`, `account_id → accounts`, `instrument_id → instruments`, `price NUMERIC(19,6)`, `quantity BIGINT`, `commission NUMERIC(19,2)`, `executed_at` |
+| `positions` | `id BIGSERIAL PK`, `account_id → accounts`, `instrument_id → instruments`, `quantity BIGINT` (short — отрицательное), `average_price NUMERIC(19,6)`, `updated_at`; `UNIQUE (account_id, instrument_id)`, `CHECK (quantity <> 0)`, `CHECK (average_price >= 0)` |
+| `nav_daily` | `id BIGSERIAL PK`, `account_id → accounts`, `nav_date DATE`, `as_of`, `cash/commission/variation_margin/market_value/nav NUMERIC(19,2)`, `holdings VARCHAR(4000) NOT NULL DEFAULT '[]'`; `UNIQUE (account_id, nav_date)` |
+
+Стратегия записи:
+
+- `accounts`, `account_balances`, `instruments` — идемпотентный `INSERT ... ON CONFLICT DO NOTHING`
+  по естественному ключу: гонка двух контекстов не прерывает транзакцию, накопленный баланс не
+  перезаписывается.
+- `positions` — `INSERT ... ON CONFLICT (account_id, instrument_id) DO UPDATE` (количество,
+  средняя цена, `updated_at`); закрытая позиция удаляется, потому что схема запрещает нулевое
+  количество.
+- `orders`, `fills`, клиринг ВМ и закрытие дня (`nav_daily`) выполняются в одной транзакции под
+  пессимистичной блокировкой строки счёта (`AccountRepository.lockByAccountId`,
+  `SELECT ... FOR UPDATE`): под ней же нумеруются заявки.
+- `nav_daily.holdings` — JSON-массив `NavSnapshot.Holding` (`VARCHAR(4000)`, по умолчанию
+  `[]`); JSONB — открытый вопрос владельца.
+
+Отложено на следующие миграции: `order_events` (лог статусов), `market_data_snapshots` (запись
+RECORD), `strategy_tags`, `backtest_results`. Черновик `positions_daily` заменён таблицей
+`positions` (текущее состояние). Индексы на внешних ключах и на `fills.executed_at` /
+`orders.status` не созданы — открытый вопрос владельца.
+
 
 ## 10. Отчётность (core/reporting)
 

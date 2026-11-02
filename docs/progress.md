@@ -50,6 +50,30 @@
     `emulator.brokers.bks.base-path`, по умолчанию `/api/bks`). Решение №2 (in-memory)
     остаётся в силе до этапа 3.
 
+- **Этап 3 реализован — домен + виртуальный портфель + PostgreSQL** (2026-11-02;
+  ожидает коммита и решений владельца). Отчёт: `docs/agent-briefs/stage-3-report.md`.
+  - S3-0: зависимости Testcontainers/PostgreSQL 18, DataSource, Flyway, smoke-IT подключения.
+  - S3-1a: `core/portfolio` — `VirtualPortfolio` (кэш RUB, позиции, средняя цена, блокировки),
+    `Fill`.
+  - S3-1b: `core/portfolio` — ГО, `MarginCheck`, вариационная маржа, `NavCalculator`/`NavSnapshot`.
+  - S3-2: `core/commission` — `CommissionCalculator` и тарифы (акции 0.1 %/мин. 0.01 RUB,
+    фьючерс 1.00 RUB за контракт).
+  - S3-3: `infra/model` + `infra/repository`, миграция `V1__init.sql` (7 таблиц).
+  - S3-4: `infra/mapper` — MapStruct «сущность ↔ домен core».
+  - S3-5: `infra/services` — счёт, JPA-заявки, `FillService`, портфельный снапшот, клиринг
+    ВМ/NAV, блокировки заявок, заглушка корпоративных событий.
+  - S3-6: `bks/adapter` — портфель и лимиты из реального `PortfolioSnapshot`; контракт этапа 2
+    не менялся.
+  - S3-7: `TradingFlowIntegrationIT` (HTTP → сделка → портфель), `RestartIntegrationIT`
+    (восстановление из PostgreSQL), ArchUnit — 9 правил.
+  - S3-8: DoD — README (раздел БД), `docker-compose.yml` (PostgreSQL 18), `docs/ARCHITECTURE.md`
+    §9, этот статус, отчёт этапа, очистка тестовой обвязки.
+  - Проверка: `./gradlew clean spotlessApply build` зелёный; 418 тестов, 0 падений; JaCoCo и
+    Spotless зелёные (покрытие по пакетам — в отчёте этапа 3).
+  - Закрыты временные решения №2 (JPA вместо in-memory) и №3 (Flyway выбран); новые
+    ограничения и вопросы владельца — №13–20 и таблица решений в отчёте.
+  - Коммит — только после явного «да» владельца и ответов по таблице решений.
+
 ## Открытые хвосты
 
 - Индекс git: устаревшие записи `app/` сняты с индекса (модуль 2). Закрыто.

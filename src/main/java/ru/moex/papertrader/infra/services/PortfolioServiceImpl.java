@@ -3,13 +3,17 @@ package ru.moex.papertrader.infra.services;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.List;
-import org.springframework.stereotype.Service;
 import ru.moex.papertrader.core.domain.Order;
 import ru.moex.papertrader.core.domain.PortfolioSnapshot;
 import ru.moex.papertrader.core.domain.Side;
 
-/** Портфель на этапе 2: начальный кэш и средства, заблокированные активными заявками. */
-@Service
+/**
+ * Эталон правил этапа 2: только акции, без ГО фьючерсов.
+ *
+ * <p>В приложении не используется: бин {@link PortfolioService} — {@link JpaPortfolioServiceImpl}.
+ * Класс сохранён как исполняемая спецификация прежнего поведения (кэш из настроек и блокировка
+ * акционных BUY-заявок) и остаётся объектом unit-тестов.
+ */
 public class PortfolioServiceImpl implements PortfolioService {
 
   private final OrderService orderService;

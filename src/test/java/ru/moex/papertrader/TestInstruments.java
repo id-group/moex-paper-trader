@@ -33,4 +33,18 @@ public final class TestInstruments {
         new BigDecimal("0.01"),
         "RUB");
   }
+
+  /** Фьючерс SiU6 — инструмент фьючерсных сценариев ГО и вариационной маржи. */
+  public static Instrument siu6() {
+    return new Instrument(
+        "SiU6",
+        "SPBFUT",
+        "FUTURES",
+        "Si-12.26",
+        "Фьючерс на доллар США",
+        "",
+        BigDecimal.ONE,
+        BigDecimal.ONE,
+        "RUB");
+  }
 }

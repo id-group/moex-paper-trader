@@ -14,9 +14,11 @@
 метрик < 30%).
 
 Текущий статус: этапы 1–2 завершены (скелет, контракт БКС HTTP MVP — `/api/bks/v1/**`,
-авторизация refresh→access, заявки, портфель, лимиты, рыночные данные на заглушке).
-Подробности — [`docs/progress.md`](docs/progress.md) и
-[`docs/agent-briefs/stage-2-report.md`](docs/agent-briefs/stage-2-report.md).
+авторизация refresh→access, заявки, портфель, лимиты, рыночные данные на заглушке). Этап 3
+реализован — виртуальный портфель (кэш, позиции, ГО, вариационная маржа, комиссии, NAV) в
+PostgreSQL 18; коммит ожидает решений владельца. Подробности — [`docs/progress.md`](docs/progress.md),
+[`docs/agent-briefs/stage-2-report.md`](docs/agent-briefs/stage-2-report.md) и
+[`docs/agent-briefs/stage-3-report.md`](docs/agent-briefs/stage-3-report.md).
 
 ## Документация
 
@@ -33,6 +35,37 @@
 
 Сборка, запуск и тесты — см. `AGENTS.md` (разделы «Окружение» и «Команды»): сервис на
 http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
+
+## Конфигурация базы данных
+
+Параметры подключения заданы в `src/main/resources/application.yml` и переопределяются
+переменными окружения; значения по умолчанию рассчитаны на локальный запуск:
+
+| Переменная | По умолчанию | Назначение |
+|---|---|---|
+| `DB_URL` | `jdbc:postgresql://localhost:5432/papertrader` | JDBC URL |
+| `DB_USERNAME` | `papertrader` | пользователь БД |
+| `DB_PASSWORD` | пусто | пароль БД; только из окружения, в git не хранится |
+
+Локальный PostgreSQL 18 поднимается файлом `docker-compose.yml` (PowerShell):
+
+```powershell
+$env:DB_PASSWORD = '<пароль>'  # пароль задаёт разработчик; в git он не коммитится
+docker compose up -d
+docker compose down            # остановка; данные остаются в томе pgdata
+```
+
+Без `DB_PASSWORD` compose отказывается стартовать. Порт хоста — 5432 (переопределяется
+переменной `DB_PORT`). Данные лежат в именованном томе, примонтированном в
+`/var/lib/postgresql`: это точка монтирования для `postgres:18` (внутри образа `PGDATA` —
+`/var/lib/postgresql/18/docker`).
+
+Схему создаёт и изменяет только **Flyway** (`src/main/resources/db/migration`);
+`spring.jpa.hibernate.ddl-auto=validate` означает, что Hibernate лишь сверяет сущности со
+схемой и падает при расхождении.
+
+Тесты используют **Testcontainers** (PostgreSQL 18 в Docker): локальная БД для них не нужна,
+но для `./gradlew clean build` должен быть запущен Docker Desktop.
 
 ## Разработка с AI-агентами
 
