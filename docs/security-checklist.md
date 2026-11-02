@@ -11,7 +11,7 @@
 | № | Требование | Статус | Где / когда |
 |---|---|---|---|
 | S1 | `.env`, `.env.local`, `*.key`, `*.pem` не попадают в git | ✅ | `.gitignore`; `opencode.json` (edit = deny) |
-| S2 | Токен AlgoPack (`X-AlgoPack-Token`) только из переменной окружения | 🔜 | этап 4, ADR-8 |
+| S2 | API-ключ AlgoPack (`Authorization: Bearer <APIKEY>`) только из переменной окружения | ✅ | этап 4, ADR-8: `emulator.algoapi.token=${ALGO_PACK_TOKEN:}`, в git пусто |
 | S3 | Refresh-токены БКС только из переменных окружения; в `application*.yml` только плейсхолдеры `${…}` | 🔜 | решение владельца принято (модуль 2): только переменные окружения; код — этап 2 |
 | S4 | Access-токены и заголовок `Authorization` не попадают в логи и ответы об ошибках | 🔜 | этап 2 (фильтр Bearer) |
 | S5 | Ответы об ошибках — `ErrorResponse` без стек-трейсов | 🔜 | этап 2, `@RestControllerAdvice` |

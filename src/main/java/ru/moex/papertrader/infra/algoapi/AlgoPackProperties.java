@@ -6,9 +6,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Настройки HTTP-клиента AlgoPack. Record с Spring-биндингом {@code emulator.algoapi.*}; пакет
  * остаётся тестируемым в изоляции — свойства можно собрать вручную ({@link #defaults()}).
  *
- * <p>Токен передаётся в заголовке {@code X-AlgoPack-Token}. Значение по умолчанию пустое —
- * заголовок не отправляется; реальный токен задаётся только через переменную окружения (skill
- * marketdata-modes), в git и конфиг не попадает.
+ * <p>Токен передаётся в заголовке {@code Authorization: Bearer <APIKEY>} (решение владельца,
+ * 2026-11-02). Значение по умолчанию пустое — заголовок не отправляется; реальный API-ключ задаётся
+ * только через переменную окружения (skill marketdata-modes), в git и конфиг не попадает.
  *
  * <p>{@code baseUrl} по умолчанию — {@code https://algo-api.moex.com}; в актуальной документации
  * (moexalgo.github.io) публичный шлюз указан как {@code https://apim.moex.com}, поэтому значение

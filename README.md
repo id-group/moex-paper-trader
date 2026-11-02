@@ -75,7 +75,7 @@ docker compose down            # остановка; данные остаютс
 | Режим | Поведение |
 |---|---|
 | `STUB` | Заглушка по умолчанию: инструменты и базовые цены из `emulator.marketdata.stub.*`, котировки генерируются детерминированно, внешняя сеть не нужна |
-| `LIVE` | AlgoPack (`https://algo-api.moex.com`, заголовок `X-AlgoPack-Token`); токен — только переменная окружения `ALGO_PACK_TOKEN`, в конфиге и git его нет. Без токена — деградация до MOEX ISS (`https://iss.moex.com`, без токена) |
+| `LIVE` | AlgoPack (`https://algo-api.moex.com`, заголовок `Authorization: Bearer <APIKEY>` — решение владельца); ключ — только переменная окружения `ALGO_PACK_TOKEN`, в конфиге и git его нет. Без ключа — деградация до MOEX ISS (`https://iss.moex.com`, без токена) |
 | `RECORD` | `LIVE` + запись входящего потока снапшотов в БД (`market_data_snapshots`); срок хранения — `emulator.marketdata.retention-days` (по умолчанию 7 дней) |
 | `REPLAY` | Детерминированное воспроизведение записи по виртуальному таймлайну: `emulator.marketdata.replay.start` — начало (ISO-8601, пусто — с начала записи), `speed` — множитель скорости, `seed` — seed стохастических моделей |
 

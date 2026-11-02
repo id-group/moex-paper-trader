@@ -2,7 +2,9 @@ package ru.moex.papertrader.infra.services;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import ru.moex.papertrader.core.marketdata.TradingCalendar;
 import ru.moex.papertrader.core.marketdata.TradingDay;
 import ru.moex.papertrader.core.marketdata.TradingSession;
+import ru.moex.papertrader.infra.algoapi.AlgoApiException;
+import ru.moex.papertrader.infra.algoapi.TableReader;
 import ru.moex.papertrader.infra.mapper.TradingCalendarMapper;
 import ru.moex.papertrader.infra.model.TradingCalendarEntity;
 import ru.moex.papertrader.infra.repository.TradingCalendarRepository;
@@ -35,8 +39,13 @@ import tools.jackson.databind.ObjectMapper;
  * эндпоинта расписания ISS не публикует (см. {@code https://iss.moex.com/iss/reference/}), а
  * эндпоинт {@code .../boards/{board}/trading-schedule} отдаёт только карточку режима торгов,
  * поэтому используется проверенный {@code /iss/history/engines/{engine}/markets/{market}/boards/
- * {board}/securities/{security}.json}. Время основной сессии задаётся настройками (по умолчанию
- * 10:00–18:50 по Москве) и переводится в UTC.
+ * {board}/securities/{security}.json}.
+ *
+ * <p>Границы сессии дня — решение владельца (2026-11-02): берутся из данных биржи, а не из
+ * конфигурации. Открытие — начало первой минутной свечи дня, закрытие — конец последней свечи
+ * вечернего фрагмента (запрос с 18:00 по Москве; в сутках меньше 500 таких баров — лимит ISS). Если
+ * биржа не отдала данные, используется fallback-окно настроек {@code session-open}/{@code
+ * session-close}.
  *
  * <p>Кэш: если все даты диапазона уже есть в БД, HTTP не вызывается. Дни после последней даты с
  * опубликованной историей ISS не кэшируются как неторговые: история за текущий день появляется
@@ -56,6 +65,12 @@ public class TradingCalendarService implements TradingCalendar {
   static final int SESSION_ID = 1;
 
   static final String SESSION_NAME = "Основная сессия";
+
+  /** Старт вечернего фрагмента для определения закрытия: основная сессия уже прошла. */
+  private static final LocalTime CLOSE_CHUNK_START = LocalTime.of(18, 0);
+
+  private static final DateTimeFormatter ISS_DATE_TIME =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   private final TradingCalendarRepository calendar;
   private final MarketDataProperties properties;
@@ -187,12 +202,74 @@ public class TradingCalendarService implements TradingCalendar {
     return true;
   }
 
-  /** Торговый день с окном основной сессии: местное время Москвы переводится в UTC. */
+  /** Торговый день с окном сессии из данных биржи; при недоступности — fallback на настройки. */
   private TradingDay tradingDay(LocalDate date) {
+    Optional<SessionBounds> bounds = fetchSessionBounds(date);
+    if (bounds.isPresent()) {
+      return new TradingDay(date, true, bounds.get().openUtc(), bounds.get().closeUtc());
+    }
+    log.warn("ISS не отдал границы сессии за {}: используются настройки", date);
     Instant openUtc = date.atTime(properties.sessionOpen()).atZone(MOSCOW).toInstant();
     Instant closeUtc = date.atTime(properties.sessionClose()).atZone(MOSCOW).toInstant();
     return new TradingDay(date, true, openUtc, closeUtc);
   }
+
+  /**
+   * Границы сессии дня из минутных свечей биржи: открытие — начало первого бара дня, закрытие —
+   * конец последнего бара вечернего фрагмента. Пусто, если данные биржи недоступны.
+   */
+  private Optional<SessionBounds> fetchSessionBounds(LocalDate date) {
+    try {
+      Instant openUtc = firstMinuteBarBegin(date);
+      Instant closeUtc = lastMinuteBarEnd(date);
+      if (openUtc == null || closeUtc == null) {
+        return Optional.empty();
+      }
+      return Optional.of(new SessionBounds(openUtc, closeUtc));
+    } catch (RestClientException | JacksonException | AlgoApiException exception) {
+      log.error("Не удалось получить границы сессии {} из ISS: {}", date, exception.getMessage());
+      return Optional.empty();
+    }
+  }
+
+  /** Начало первой минутной свечи дня: запрос только по дате отдаёт бары с открытия дня. */
+  private Instant firstMinuteBarBegin(LocalDate date) {
+    TableReader candles = minuteCandles(date.toString(), date);
+    return candles.size() == 0 ? null : candles.dateTime(0, "begin");
+  }
+
+  /** Конец последней свечи вечернего фрагмента (запрос с 18:00 по Москве — хвост дня). */
+  private Instant lastMinuteBarEnd(LocalDate date) {
+    TableReader candles = minuteCandles(CLOSE_CHUNK_START.atDate(date).format(ISS_DATE_TIME), date);
+    return candles.size() == 0 ? null : candles.dateTime(candles.size() - 1, "end");
+  }
+
+  /** Минутные свечи эталонного инструмента; {@code from} — дата либо дата-время по Москве. */
+  private TableReader minuteCandles(String from, LocalDate date) {
+    String uri =
+        UriComponentsBuilder.fromUriString(properties.issBaseUrl())
+            .pathSegment(
+                "iss",
+                "engines",
+                properties.calendarEngine(),
+                "markets",
+                properties.calendarMarket(),
+                "boards",
+                properties.calendarBoard(),
+                "securities",
+                properties.calendarSecurity(),
+                "candles.json")
+            .queryParam("interval", "1")
+            .queryParam("from", from)
+            .queryParam("till", date.toString())
+            .queryParam("iss.meta", "off")
+            .toUriString();
+    String body = restClient.get().uri(uri).retrieve().body(String.class);
+    return TableReader.of(objectMapper.readTree(body), "candles");
+  }
+
+  /** Границы торговой сессии дня (UTC). */
+  private record SessionBounds(Instant openUtc, Instant closeUtc) {}
 
   private Optional<Set<LocalDate>> fetchTradingDates(LocalDate from, LocalDate to) {
     String uri =

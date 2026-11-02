@@ -53,7 +53,8 @@ emulator:
     iss-base-url: https://iss.moex.com
     connect-timeout-ms: 2000
     read-timeout-ms: 5000
-    # Окно основной сессии (МСК) для торгового календаря.
+    # Fallback-окно сессии (МСК), если биржа не отдала границы из своих данных
+    # (решение владельца: границы сессии берутся из API биржи — минутные свечи).
     session-open: "10:00"
     session-close: "18:50"
     stub:

@@ -14,7 +14,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * <p>Умолчания: срок хранения снапшотов — 7 дней, календарь акций основного режима TQBR, базовый
  * адрес MOEX ISS — {@code https://iss.moex.com} (домен {@code iss.moex.ru} выведен из эксплуатации
- * и не разрешается), основная сессия — 10:00–18:50 по Москве.
+ * и не разрешается), fallback-окно сессии — 10:00–18:50 по Москве (основное окно — из данных
+ * биржи).
  *
  * @param retentionDays срок хранения записанных снапшотов, дни
  * @param calendarEngine движок ISS для календаря ({@code stock})
@@ -24,8 +25,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param issBaseUrl базовый адрес MOEX ISS без завершающего слэша
  * @param connectTimeoutMs таймаут установки соединения, мс
  * @param readTimeoutMs таймаут чтения ответа, мс
- * @param sessionOpen начало основной сессии по Москве
- * @param sessionClose окончание основной сессии по Москве
+ * @param sessionOpen fallback-открытие сессии по Москве (если биржа не отдала границы)
+ * @param sessionClose fallback-закрытие сессии по Москве (если биржа не отдала границы)
  */
 @ConfigurationProperties(prefix = "emulator.marketdata")
 public record MarketDataProperties(

@@ -20,8 +20,11 @@ import tools.jackson.databind.JsonNode;
  * колонок и массив строк-массивов. Класс даёт доступ к значениям по имени колонки и не зависит от
  * порядка полей в ответе. Время без смещения трактуется как московское (UTC+3) и переводится в UTC
  * — по брифу этапа 4 храним UTC.
+ *
+ * <p>Класс открыт и для infra/services: торговый календарь разбирает им минутные свечи (границы
+ * сессии).
  */
-final class TableReader {
+public final class TableReader {
 
   /** Московское время — часовой пояс всех дат ISS/AlgoPack. */
   static final ZoneId MOSCOW = ZoneId.of("Europe/Moscow");
@@ -41,7 +44,7 @@ final class TableReader {
   }
 
   /** Обязательный блок ответа; его отсутствие — ошибка схемы API. */
-  static TableReader of(JsonNode root, String block) {
+  public static TableReader of(JsonNode root, String block) {
     JsonNode node = root.path(block);
     if (!node.isObject() || !node.path("columns").isArray() || !node.path("data").isArray()) {
       throw new AlgoApiException("В ответе API нет табличного блока '" + block + "'");
@@ -55,15 +58,15 @@ final class TableReader {
   }
 
   /** Необязательный блок ответа; {@code null}, если API его не вернул. */
-  static TableReader optional(JsonNode root, String block) {
+  public static TableReader optional(JsonNode root, String block) {
     return root.path(block).isObject() ? of(root, block) : null;
   }
 
-  int size() {
+  public int size() {
     return rows.size();
   }
 
-  String text(int row, String column) {
+  public String text(int row, String column) {
     JsonNode value = value(row, column);
     if (value == null || value.isNull()) {
       return null;
@@ -72,7 +75,7 @@ final class TableReader {
     return text.isBlank() ? null : text;
   }
 
-  BigDecimal decimal(int row, String column) {
+  public BigDecimal decimal(int row, String column) {
     JsonNode value = value(row, column);
     if (value == null || value.isNull()) {
       return null;
@@ -93,18 +96,18 @@ final class TableReader {
     }
   }
 
-  long longValue(int row, String column, long defaultValue) {
+  public long longValue(int row, String column, long defaultValue) {
     BigDecimal value = decimal(row, column);
     return value == null ? defaultValue : value.longValue();
   }
 
   /** Дата-время из колонки; {@code null}, если значение пустое или не распознано. */
-  Instant dateTime(int row, String column) {
+  public Instant dateTime(int row, String column) {
     return toInstant(text(row, column));
   }
 
   /** Дата из одной колонки и время из другой (например, {@code TRADEDATE} + {@code TRADETIME}). */
-  Instant dateAndTime(int row, String dateColumn, String timeColumn) {
+  public Instant dateAndTime(int row, String dateColumn, String timeColumn) {
     return combine(text(row, dateColumn), text(row, timeColumn));
   }
 

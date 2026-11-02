@@ -128,7 +128,8 @@ trade / read-only — как у БКС), обмен на access-токен (JWT-
 ## 6. Рыночные данные (core/marketdata + infra/algoapi)
 
 **ADR-8. Три режима: LIVE, RECORD, REPLAY** (+ виртуальный `Clock`).
-- LIVE: клиент AlgoPack (`algo-api.moex.com`, заголовок `X-AlgoPack-Token`): котировки,
+- LIVE: клиент AlgoPack (`algo-api.moex.com`, заголовок `Authorization: Bearer <APIKEY>`,
+  решение владельца): котировки,
   стакан, сделки, свечи; справочник/расписание/свечи при нехватке тарифа — из MOEX ISS
   (`iss.moex.ru`, без токена). Токен — только из переменных окружения (`.env` не коммитится).
 - RECORD = LIVE + запись входящего потока в БД (таблицы снапшотов) — собственная история

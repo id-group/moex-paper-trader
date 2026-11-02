@@ -167,11 +167,13 @@ class AlgoPackClientTest {
   void sendsTokenHeaderOnlyWhenTokenPresent() {
     server.route("/securities/SBER.json", ok(AlgoApiFixtures.read(QUOTE_FIXTURE)));
 
+    // Решение владельца (2026-11-02): Authorization: Bearer <APIKEY> вместо X-AlgoPack-Token.
     client(properties("secret-token", 2_000)).quote("SBER");
-    assertThat(server.lastRequest().headers()).containsEntry("x-algopack-token", "secret-token");
+    assertThat(server.lastRequest().headers())
+        .containsEntry("authorization", "Bearer secret-token");
 
     client(properties("", 2_000)).quote("SBER");
-    assertThat(server.lastRequest().headers()).doesNotContainKey("x-algopack-token");
+    assertThat(server.lastRequest().headers()).doesNotContainKey("authorization");
   }
 
   @Test

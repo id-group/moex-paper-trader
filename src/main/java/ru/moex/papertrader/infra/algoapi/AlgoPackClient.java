@@ -22,9 +22,8 @@ import tools.jackson.databind.JsonNode;
  * <p>Ответы площадки имеют ISS-подобную табличную схему {@code metadata/columns/data}; клиент
  * разбирает строки в типизированные DTO. Даты без смещения — московские, в DTO переводятся в UTC.
  *
- * <p>Авторизация: заголовок {@code X-AlgoPack-Token} отправляется только при непустом токене. В
- * актуальной документации площадки используется {@code Authorization: Bearer}, поэтому при
- * подключении к публичному шлюзу проверьте формат авторизации (см. отчёт этапа 4).
+ * <p>Авторизация (решение владельца, 2026-11-02): заголовок {@code Authorization: Bearer <APIKEY>}
+ * отправляется только при непустом API-ключе; сам ключ — только из переменной окружения.
  *
  * <p>Документация: <a
  * href="https://moexalgo.github.io/docs/api/real-time-market-data-акции">Real-time market data —
@@ -32,8 +31,11 @@ import tools.jackson.databind.JsonNode;
  */
 public class AlgoPackClient {
 
-  /** Заголовок авторизации AlgoPack. */
-  public static final String TOKEN_HEADER = "X-AlgoPack-Token";
+  /** Префикс заголовка авторизации AlgoPack: {@code Authorization: Bearer <APIKEY>}. */
+  public static final String AUTH_HEADER = "Authorization";
+
+  /** Схема токена в заголовке авторизации. */
+  public static final String BEARER_PREFIX = "Bearer ";
 
   private final JsonHttpClient http;
   private final String pathPrefix;
@@ -43,7 +45,9 @@ public class AlgoPackClient {
   public AlgoPackClient(RestClient.Builder builder, AlgoPackProperties properties) {
     Objects.requireNonNull(properties, "properties");
     Map<String, String> headers =
-        properties.token().isBlank() ? Map.of() : Map.of(TOKEN_HEADER, properties.token());
+        properties.token().isBlank()
+            ? Map.of()
+            : Map.of(AUTH_HEADER, BEARER_PREFIX + properties.token());
     this.http =
         new JsonHttpClient(
             builder,
