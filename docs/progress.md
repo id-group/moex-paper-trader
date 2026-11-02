@@ -25,6 +25,27 @@
   OpenCode (`opencode service set env ...`), сервис перезапущен; `.\gradlew.bat --version`
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.
 
+- **Этап 4 завершён — рыночные данные LIVE/RECORD/REPLAY** (2026-11-02; коммит
+  `TODO`). Отчёт: `docs/agent-briefs/stage-4-report.md`.
+  - Контрактное ядро: порты `Clock` (`SystemClock`/`VirtualClock`), `TradingCalendar`,
+    снапшоты `MarketDataSnapshot` (QUOTE/ORDER_BOOK/TRADE), `Trade`/`TradingDay`, методы
+    `trades`/`adv`/`tradingDays` в `MarketDataProvider`.
+  - `core/marketdata`: `VirtualClock`, `RecordingMarketDataProvider` (RECORD),
+    `ReplayMarketDataProvider` (REPLAY, детерминизм, свечи из сделок, ADV).
+  - `infra/algoapi`: клиенты AlgoPack/MOEX ISS (ретраи/таймауты/кэш справочника), провайдеры
+    LIVE с деградацией AlgoPack→ISS.
+  - `infra`: миграция V2 (`market_data_snapshots` JSONB, `trading_calendar`), сущности/
+    репозитории/мапперы, `MarketDataSnapshotStore`, `TradingCalendarService` (кэш в БД,
+    источник — история торгов ISS).
+  - Режимы `emulator.marketdata.mode` (STUB/LIVE/RECORD/REPLAY) в `MarketDataConfiguration`;
+    `ReplayClockAdvancer` продвигает виртуальный таймлайн; миграция всех потребителей времени
+    на порт `Clock`; ArchUnit — 10 правил (системные часы читает только infra).
+  - Проверка: `./gradlew test` — 548 тестов (74 сюиты), 0 падений; spotlessCheck зелёный.
+  - LIVE-демонстрация: справочник/свечи/календарь — реальные данные ISS (curl-лог в отчёте);
+    стакан требует подписки ISS или токена AlgoPack (зафиксировано как ограничение).
+  - Отклонения и решения — 12 пунктов в отчёте этапа 4 (endpoint календаря ISS, домен
+    iss.moex.com, окно сессии из конфига, баг формата from/till свечей и др.).
+
 - **Этап 2 завершён — Контракт БКС (HTTP MVP)** (2026-11-01; закрыт после ревью —
   2026-11-02). Отчёт: `docs/agent-briefs/stage-2-report.md`.
   - `core/domain` + `core/marketdata`: `Order`/`Instrument`/`PortfolioSnapshot`, статусы,

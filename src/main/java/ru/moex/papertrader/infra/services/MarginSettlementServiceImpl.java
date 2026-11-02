@@ -1,7 +1,6 @@
 package ru.moex.papertrader.infra.services;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.moex.papertrader.core.commission.InstrumentType;
 import ru.moex.papertrader.core.domain.Instrument;
+import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.MarketDataProvider;
 import ru.moex.papertrader.core.marketdata.Quote;
 import ru.moex.papertrader.core.portfolio.MarginCalculator;

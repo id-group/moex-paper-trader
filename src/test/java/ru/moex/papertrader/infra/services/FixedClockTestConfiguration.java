@@ -1,11 +1,11 @@
 package ru.moex.papertrader.infra.services;
 
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import ru.moex.papertrader.core.marketdata.Clock;
+import ru.moex.papertrader.testutil.FixedClock;
 
 /**
  * Детерминированное время интеграционных тестов: фиксированный {@link Clock} вместо системного.
@@ -21,6 +21,6 @@ public class FixedClockTestConfiguration {
   @Bean
   @Primary
   public Clock fixedClock() {
-    return Clock.fixed(NOW, ZoneOffset.UTC);
+    return FixedClock.at(NOW);
   }
 }

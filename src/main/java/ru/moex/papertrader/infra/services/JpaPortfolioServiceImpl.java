@@ -1,7 +1,6 @@
 package ru.moex.papertrader.infra.services;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.moex.papertrader.core.domain.Instrument;
 import ru.moex.papertrader.core.domain.PortfolioSnapshot;
 import ru.moex.papertrader.core.domain.Position;
+import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.MarketDataProvider;
 import ru.moex.papertrader.core.marketdata.Quote;
 import ru.moex.papertrader.core.portfolio.Money;

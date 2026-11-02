@@ -1,6 +1,5 @@
 package ru.moex.papertrader.bks.adapter;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import ru.moex.papertrader.core.marketdata.Clock;
 
 /**
  * Обмен refresh-токена на access-токен (ADR-7): refresh-токены задаются конфигурацией (значения —

@@ -5,14 +5,17 @@
 
 ## Сейчас
 
-- [ ] Этапы 4–7 — см. `docs/roadmap.md` (этап 4 — отдельное окно после коммита этапа 3).
+- [ ] Этапы 5–7 — см. `docs/roadmap.md` (этап 5 — отдельное окно после коммита этапа 4).
 
 ## Дальше
 
-- [ ] Этапы 4–7 — см. `docs/roadmap.md`.
+- [ ] Этапы 5–7 — см. `docs/roadmap.md`.
 
 ## Закрытые пункты
 
+- [x] Этап 4 — рыночные данные LIVE/RECORD/REPLAY (коммит `TODO`,
+      2026-11-02; бриф `docs/agent-briefs/stage-4-marketdata.md`,
+      отчёт `docs/agent-briefs/stage-4-report.md`).
 - [x] Этап 3 — домен + виртуальный портфель + PostgreSQL (коммит `68c4c9c`,
       2026-11-02; бриф `docs/agent-briefs/stage-3-portfolio.md`).
 

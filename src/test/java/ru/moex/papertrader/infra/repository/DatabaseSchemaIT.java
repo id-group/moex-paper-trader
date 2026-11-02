@@ -12,7 +12,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.moex.papertrader.PostgresContainerSupport;
 
-/** Проверяет, что миграция V1 создаёт ровно минимальный набор таблиц этапа 3. */
+/** Проверяет, что миграции V1–V2 создают ровно минимальный набор таблиц этапов 3–4. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class DatabaseSchemaIT extends PostgresContainerSupport {
@@ -20,7 +20,7 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
   @Autowired private JdbcTemplate jdbcTemplate;
 
   @Test
-  void createsExactlySevenDomainTables() {
+  void createsExactlyNineDomainTables() {
     List<String> tables =
         jdbcTemplate.queryForList(
             "SELECT table_name FROM information_schema.tables"
@@ -34,9 +34,11 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
             "accounts",
             "fills",
             "instruments",
+            "market_data_snapshots",
             "nav_daily",
             "orders",
-            "positions");
+            "positions",
+            "trading_calendar");
   }
 
   @Test

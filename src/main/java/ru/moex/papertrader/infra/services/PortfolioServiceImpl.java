@@ -1,11 +1,11 @@
 package ru.moex.papertrader.infra.services;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.util.List;
 import ru.moex.papertrader.core.domain.Order;
 import ru.moex.papertrader.core.domain.PortfolioSnapshot;
 import ru.moex.papertrader.core.domain.Side;
+import ru.moex.papertrader.core.marketdata.Clock;
 
 /**
  * Эталон правил этапа 2: только акции, без ГО фьючерсов.

@@ -183,24 +183,47 @@ class ArchitectureTest {
   }
 
   /**
+   * Принцип №5: системные часы читает только infra. Исключение — {@code core/marketdata/
+   * SystemClock}: он делегирует чтение {@code java.time.Clock} (instance-метод {@code instant()}),
+   * поэтому под predicate не попадает. Классы bks/api и корневого пакета запрещены: время туда
+   * приходит через порт {@code Clock}.
+   */
+  @Test
+  void onlyInfraMayReadSystemClock() {
+    onlyInfraUsesSystemClockRule().check(CLASSES);
+  }
+
+  /**
    * ArchUnit проверяет вызовы методов: {@code now()} перечисленных типов и {@code
    * System.currentTimeMillis()}. Проверка статических вызовов в core — этого достаточно: порт
    * {@code Clock} вызывается как {@code clock.instant()}, а не через системные методы.
    */
   static ArchRule coreUsesNoSystemClockRule() {
-    DescribedPredicate<JavaCall<?>> systemClockCall =
-        DescribedPredicate.describe(
-            "вызов системных часов",
-            call ->
-                (call.getName().equals("now")
-                        && SYSTEM_CLOCK_TYPES.contains(call.getTargetOwner().getFullName()))
-                    || (call.getTargetOwner().isEquivalentTo(System.class)
-                        && call.getName().equals("currentTimeMillis")));
     return noClasses()
         .that()
         .resideInAPackage("ru.moex.papertrader.core..")
         .should()
-        .callMethodWhere(systemClockCall);
+        .callMethodWhere(systemClockCall());
+  }
+
+  /** Системные часы вне infra/ запрещены: там время должно приходить через порт {@code Clock}. */
+  static ArchRule onlyInfraUsesSystemClockRule() {
+    return noClasses()
+        .that()
+        .resideOutsideOfPackage("ru.moex.papertrader.infra..")
+        .should()
+        .callMethodWhere(systemClockCall());
+  }
+
+  /** Предикат чтения системных часов: статические {@code now()} и {@code currentTimeMillis()}. */
+  private static DescribedPredicate<JavaCall<?>> systemClockCall() {
+    return DescribedPredicate.describe(
+        "вызов системных часов",
+        call ->
+            (call.getName().equals("now")
+                    && SYSTEM_CLOCK_TYPES.contains(call.getTargetOwner().getFullName()))
+                || (call.getTargetOwner().isEquivalentTo(System.class)
+                    && call.getName().equals("currentTimeMillis")));
   }
 
   /** Типы, чей статический {@code now()} считается чтением системного времени. */

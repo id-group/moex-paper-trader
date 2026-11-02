@@ -2,7 +2,6 @@ package ru.moex.papertrader.infra.services;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -12,10 +11,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.stereotype.Component;
 import ru.moex.papertrader.core.domain.Instrument;
 import ru.moex.papertrader.core.marketdata.Candle;
 import ru.moex.papertrader.core.marketdata.CandleSeries;
+import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.MarketDataProvider;
 import ru.moex.papertrader.core.marketdata.OrderBookSnapshot;
 import ru.moex.papertrader.core.marketdata.Quote;
@@ -24,9 +23,9 @@ import ru.moex.papertrader.core.marketdata.TradingSession;
 
 /**
  * Заглушка порта рыночных данных: инструменты и базовые цены из конфигурации, котировки
- * генерируются детерминированно. Настоящие клиенты AlgoPack/MOEX ISS появятся на этапе 4.
+ * генерируются детерминированно. Настоящие клиенты AlgoPack/MOEX ISS и режимы LIVE/RECORD/REPLAY
+ * подключает {@code MarketDataConfiguration} (этап 4); заглушка остаётся режимом STUB по умолчанию.
  */
-@Component
 public class StubMarketDataProvider implements MarketDataProvider {
 
   private static final int TRADING_STATUS_OPEN = 17;

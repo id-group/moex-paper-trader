@@ -5,9 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -18,11 +16,13 @@ import ru.moex.papertrader.core.domain.OrderType;
 import ru.moex.papertrader.core.domain.PortfolioSnapshot;
 import ru.moex.papertrader.core.domain.Side;
 import ru.moex.papertrader.core.domain.TimeInForce;
+import ru.moex.papertrader.core.marketdata.Clock;
+import ru.moex.papertrader.testutil.FixedClock;
 
 class PortfolioServiceImplTest {
 
   private static final Instant NOW = Instant.parse("2026-11-01T10:00:00Z");
-  private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
+  private static final Clock CLOCK = FixedClock.at(NOW);
 
   @Test
   void locksCashOfActiveBuyLimitOrders() {

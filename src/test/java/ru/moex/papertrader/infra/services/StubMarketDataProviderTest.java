@@ -3,23 +3,23 @@ package ru.moex.papertrader.infra.services;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import ru.moex.papertrader.TestInstruments;
 import ru.moex.papertrader.core.domain.Instrument;
 import ru.moex.papertrader.core.marketdata.CandleSeries;
+import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.OrderBookSnapshot;
 import ru.moex.papertrader.core.marketdata.Quote;
 import ru.moex.papertrader.core.marketdata.TimeFrame;
 import ru.moex.papertrader.core.marketdata.TradingSession;
+import ru.moex.papertrader.testutil.FixedClock;
 
 class StubMarketDataProviderTest {
 
   private static final Instant NOW = Instant.parse("2026-11-01T10:00:00Z");
-  private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
+  private static final Clock CLOCK = FixedClock.at(NOW);
 
   private final StubMarketDataProvider provider =
       new StubMarketDataProvider(new StubMarketDataProperties(List.of(sber(), gazp())), CLOCK);

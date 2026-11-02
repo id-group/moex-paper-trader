@@ -1,6 +1,5 @@
 package ru.moex.papertrader.bks.api;
 
-import java.time.Clock;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,6 +10,7 @@ import ru.moex.papertrader.bks.adapter.BksMarketDataMapper;
 import ru.moex.papertrader.bks.contract.Instrument;
 import ru.moex.papertrader.bks.contract.TickersRequest;
 import ru.moex.papertrader.bks.contract.TradingStatusResponse;
+import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.MarketDataProvider;
 import ru.moex.papertrader.infra.services.exception.InvalidRequestException;
 

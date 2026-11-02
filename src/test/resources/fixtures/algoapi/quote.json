@@ -1,0 +1,62 @@
+{
+  "securities": {
+    "metadata": {
+      "SECID": { "type": "string", "bytes": 36, "max_size": 0 },
+      "BOARDID": { "type": "string", "bytes": 12, "max_size": 0 },
+      "SHORTNAME": { "type": "string", "bytes": 30, "max_size": 0 },
+      "PREVPRICE": { "type": "double" },
+      "LOTSIZE": { "type": "int32" },
+      "MINSTEP": { "type": "double" },
+      "ISIN": { "type": "string", "bytes": 36, "max_size": 0 },
+      "CURRENCYID": { "type": "string", "bytes": 12, "max_size": 0 }
+    },
+    "columns": [
+      "SECID",
+      "BOARDID",
+      "SHORTNAME",
+      "PREVPRICE",
+      "LOTSIZE",
+      "MINSTEP",
+      "ISIN",
+      "CURRENCYID"
+    ],
+    "data": [
+      ["SBER", "TQBR", "Сбербанк", 298.00, 10, 0.01, "RU0009029540", "SUR"]
+    ]
+  },
+  "marketdata": {
+    "metadata": {
+      "SECID": { "type": "string", "bytes": 36, "max_size": 0 },
+      "BOARDID": { "type": "string", "bytes": 12, "max_size": 0 },
+      "BID": { "type": "double" },
+      "OFFER": { "type": "double" },
+      "OPEN": { "type": "double" },
+      "HIGH": { "type": "double" },
+      "LOW": { "type": "double" },
+      "LAST": { "type": "double" },
+      "LASTCHANGE": { "type": "double" },
+      "LASTCHANGEPRCNT": { "type": "double" },
+      "TRADINGSTATUS": { "type": "string", "bytes": 3, "max_size": 0 },
+      "SYSTIME": { "type": "datetime", "bytes": 19, "max_size": 0 },
+      "UPDATETIME": { "type": "time", "bytes": 10, "max_size": 0 }
+    },
+    "columns": [
+      "SECID",
+      "BOARDID",
+      "BID",
+      "OFFER",
+      "OPEN",
+      "HIGH",
+      "LOW",
+      "LAST",
+      "LASTCHANGE",
+      "LASTCHANGEPRCNT",
+      "TRADINGSTATUS",
+      "SYSTIME",
+      "UPDATETIME"
+    ],
+    "data": [
+      ["SBER", "TQBR", 298.88, 298.90, 299.00, 300.10, 297.00, 298.89, 0.89, 0.30, "T", "2026-11-02 19:34:55", "19:34:55"]
+    ]
+  }
+}

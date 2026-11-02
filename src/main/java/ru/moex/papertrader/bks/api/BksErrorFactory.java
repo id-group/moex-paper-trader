@@ -1,6 +1,5 @@
 package ru.moex.papertrader.bks.api;
 
-import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -8,6 +7,7 @@ import org.springframework.stereotype.Component;
 import ru.moex.papertrader.bks.contract.ErrorDetail;
 import ru.moex.papertrader.bks.contract.ErrorResponse;
 import ru.moex.papertrader.bks.contract.ErrorType;
+import ru.moex.papertrader.core.marketdata.Clock;
 
 /** Сборка единого контракта ошибки БКС (ADR-6). */
 @Component
@@ -23,7 +23,7 @@ public class BksErrorFactory {
     Map<String, Object> payload =
         message == null ? null : Map.of("message", Map.of("text", message));
     return new ErrorResponse(
-        clock.millis(),
+        clock.instant().toEpochMilli(),
         UUID.randomUUID().toString(),
         type,
         List.of(new ErrorDetail(type.name(), field, payload)),

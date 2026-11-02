@@ -67,6 +67,31 @@ docker compose down            # остановка; данные остаютс
 Тесты используют **Testcontainers** (PostgreSQL 18 в Docker): локальная БД для них не нужна,
 но для `./gradlew clean build` должен быть запущен Docker Desktop.
 
+## Рыночные данные: режимы LIVE/RECORD/REPLAY
+
+Источник котировок выбирается ключом `emulator.marketdata.mode` в
+`src/main/resources/application.yml`:
+
+| Режим | Поведение |
+|---|---|
+| `STUB` | Заглушка по умолчанию: инструменты и базовые цены из `emulator.marketdata.stub.*`, котировки генерируются детерминированно, внешняя сеть не нужна |
+| `LIVE` | AlgoPack (`https://algo-api.moex.com`, заголовок `X-AlgoPack-Token`); токен — только переменная окружения `ALGO_PACK_TOKEN`, в конфиге и git его нет. Без токена — деградация до MOEX ISS (`https://iss.moex.com`, без токена) |
+| `RECORD` | `LIVE` + запись входящего потока снапшотов в БД (`market_data_snapshots`); срок хранения — `emulator.marketdata.retention-days` (по умолчанию 7 дней) |
+| `REPLAY` | Детерминированное воспроизведение записи по виртуальному таймлайну: `emulator.marketdata.replay.start` — начало (ISO-8601, пусто — с начала записи), `speed` — множитель скорости, `seed` — seed стохастических моделей |
+
+Переключение через переменную окружения (Spring-биндинг `emulator.marketdata.mode`):
+
+```powershell
+$env:EMULATOR_MARKETDATA_MODE = 'REPLAY'
+./gradlew bootRun
+```
+
+Параметры HTTP-клиентов — `emulator.algoapi.*` и `emulator.iss.*` (таймауты, ретраи,
+режим/рынок/борда по умолчанию); торговый календарь (кэш в БД) — `emulator.marketdata.calendar-*`
+и `session-open/session-close` (окно основной сессии, МСК). Выбор и сборка провайдера по режиму —
+`MarketDataConfiguration`; в REPLAY виртуальный таймлайн продвигает `ReplayClockAdvancer`
+(`replay.tick-ms` × `replay.speed`).
+
 ## Разработка с AI-агентами
 
 Конфигурация агента лежит в `opencode.json` и `.opencode/`:

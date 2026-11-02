@@ -1,0 +1,40 @@
+{
+  "orderbook": {
+    "metadata": {
+      "BOARDID": { "type": "string", "bytes": 12, "max_size": 0 },
+      "SECID": { "type": "string", "bytes": 36, "max_size": 0 },
+      "BUYSELL": { "type": "string", "bytes": 3, "max_size": 0 },
+      "PRICE": { "type": "double" },
+      "QUANTITY": { "type": "int64" },
+      "SEQNUM": { "type": "int64" },
+      "UPDATETIME": { "type": "time", "bytes": 10, "max_size": 0 },
+      "DECIMALS": { "type": "int32" }
+    },
+    "columns": [
+      "BOARDID",
+      "SECID",
+      "BUYSELL",
+      "PRICE",
+      "QUANTITY",
+      "SEQNUM",
+      "UPDATETIME",
+      "DECIMALS"
+    ],
+    "data": [
+      ["TQBR", "SBER", "B", 298.88, 1510, 20261102193455, "19:34:55", 2],
+      ["TQBR", "SBER", "B", 298.87, 2697, 20261102193455, "19:34:55", 2],
+      ["TQBR", "SBER", "B", 298.86, 3036, 20261102193455, "19:34:55", 2],
+      ["TQBR", "SBER", "S", 298.90, 1200, 20261102193455, "19:34:55", 2],
+      ["TQBR", "SBER", "S", 298.91, 800, 20261102193455, "19:34:55", 2],
+      ["TQBR", "SBER", "S", 298.92, 100, 20261102193455, "19:34:55", 2]
+    ]
+  },
+  "dataversion": {
+    "metadata": {
+      "data_version": { "type": "int32" },
+      "trade_date": { "type": "date", "bytes": 10, "max_size": 0 }
+    },
+    "columns": ["data_version", "trade_date"],
+    "data": [[8757, "2026-11-02"]]
+  }
+}

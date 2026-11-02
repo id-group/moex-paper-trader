@@ -1,11 +1,11 @@
 package ru.moex.papertrader.infra.services;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.infra.repository.AccountBalanceRepository;
 import ru.moex.papertrader.infra.repository.AccountRepository;
 

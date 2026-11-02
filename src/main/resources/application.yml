@@ -34,6 +34,28 @@ emulator:
     initial-cash: 1000000.00
     currency: RUB
   marketdata:
+    # Режим рыночных данных: STUB (заглушка, по умолчанию) / LIVE / RECORD / REPLAY.
+    mode: STUB
+    # REPLAY: начало таймлайна (ISO-8601, опционально — по умолчанию с первого снапшота записи),
+    # скорость воспроизведения, seed детерминированных моделей и шаг таймера.
+    replay:
+      speed: 1.0
+      seed: 42
+      tick-ms: 100
+    # RECORD: сколько дней хранить снапшоты рыночных данных (retention).
+    retention-days: 7
+    # Торговый календарь MOEX ISS (кэш в БД): движок/рынок/режим, эталонный инструмент
+    # (по его торговым дням строится календарь), базовый адрес ISS и таймауты.
+    calendar-engine: stock
+    calendar-market: shares
+    calendar-board: TQBR
+    calendar-security: SBER
+    iss-base-url: https://iss.moex.com
+    connect-timeout-ms: 2000
+    read-timeout-ms: 5000
+    # Окно основной сессии (МСК) для торгового календаря.
+    session-open: "10:00"
+    session-close: "18:50"
     stub:
       instruments:
         - ticker: SBER
@@ -76,6 +98,27 @@ emulator:
           minimum-step: 1
           currency: RUB
           base-price: 90000
+  # HTTP-клиенты рыночных данных (этап 4). Токен AlgoPack — только env, никогда в конфиг.
+  algoapi:
+    base-url: https://algo-api.moex.com
+    token: ${ALGO_PACK_TOKEN:}
+    connect-timeout-ms: 2000
+    read-timeout-ms: 5000
+    max-retries: 2
+    retry-delay-ms: 500
+    engine: stock
+    market: shares
+    board: TQBR
+  iss:
+    # Домен iss.moex.ru выведен из эксплуатации; рабочий — iss.moex.com.
+    base-url: https://iss.moex.com
+    connect-timeout-ms: 2000
+    read-timeout-ms: 5000
+    max-retries: 2
+    retry-delay-ms: 500
+    engine: stock
+    market: shares
+    board: TQBR
   brokers:
     bks:
       # Префикс монтирования API брокера: контрактный /api/v1/x -> /api/bks/v1/x.

@@ -3,13 +3,12 @@ package ru.moex.papertrader.bks.adapter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import ru.moex.papertrader.core.marketdata.Clock;
+import ru.moex.papertrader.testutil.FixedClock;
 
 class BksTokenServiceTest {
 
@@ -104,7 +103,7 @@ class BksTokenServiceTest {
 
   @Test
   void expiredSessionsAreRemovedOnNextExchange() {
-    MutableClock clock = new MutableClock(NOW);
+    FixedClock clock = FixedClock.at(NOW);
     BksTokenService service = service(Duration.ofHours(24), clock);
 
     service.exchange("trade-api-write", "trade-refresh", "refresh_token");
@@ -118,7 +117,7 @@ class BksTokenServiceTest {
 
   @Test
   void keepsLiveSessionsWhenNewTokenIsIssued() {
-    MutableClock clock = new MutableClock(NOW);
+    FixedClock clock = FixedClock.at(NOW);
     BksTokenService service = service(Duration.ofHours(24), clock);
 
     BksTokenIssue first = service.exchange("trade-api-write", "trade-refresh", "refresh_token");
@@ -129,7 +128,7 @@ class BksTokenServiceTest {
   }
 
   private static BksTokenService service(Duration accessTtl) {
-    return service(accessTtl, Clock.fixed(NOW, ZoneOffset.UTC));
+    return service(accessTtl, FixedClock.at(NOW));
   }
 
   private static BksTokenService service(Duration accessTtl, Clock clock) {
@@ -144,34 +143,5 @@ class BksTokenServiceTest {
                     new BksProperties.RefreshToken("read-refresh", "trade-api-read"))),
             new BksProperties.RateLimit(false, 10));
     return new BksTokenService(properties, clock);
-  }
-
-  /** Управляемые часы: позволяют сдвинуть время за пределы TTL access-токена. */
-  private static final class MutableClock extends Clock {
-
-    private Instant now;
-
-    private MutableClock(Instant now) {
-      this.now = now;
-    }
-
-    void advance(Duration duration) {
-      now = now.plus(duration);
-    }
-
-    @Override
-    public ZoneId getZone() {
-      return ZoneOffset.UTC;
-    }
-
-    @Override
-    public Clock withZone(ZoneId zone) {
-      return this;
-    }
-
-    @Override
-    public Instant instant() {
-      return now;
-    }
   }
 }

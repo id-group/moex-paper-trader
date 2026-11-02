@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +28,7 @@ import ru.moex.papertrader.core.domain.OrderIdType;
 import ru.moex.papertrader.core.domain.OrderType;
 import ru.moex.papertrader.core.domain.Side;
 import ru.moex.papertrader.core.domain.TimeInForce;
+import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.MarketDataProvider;
 import ru.moex.papertrader.core.marketdata.Quote;
 import ru.moex.papertrader.core.portfolio.NavSnapshot;

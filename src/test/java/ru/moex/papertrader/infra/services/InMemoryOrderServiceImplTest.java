@@ -4,9 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,9 +18,11 @@ import ru.moex.papertrader.core.domain.OrderType;
 import ru.moex.papertrader.core.domain.PageResult;
 import ru.moex.papertrader.core.domain.Side;
 import ru.moex.papertrader.core.domain.TimeInForce;
+import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.infra.services.exception.ConflictException;
 import ru.moex.papertrader.infra.services.exception.InvalidRequestException;
 import ru.moex.papertrader.infra.services.exception.ResourceNotFoundException;
+import ru.moex.papertrader.testutil.FixedClock;
 
 class InMemoryOrderServiceImplTest {
 
@@ -32,7 +32,7 @@ class InMemoryOrderServiceImplTest {
 
   @BeforeEach
   void setUp() {
-    Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
+    Clock clock = FixedClock.at(NOW);
     StubMarketDataProvider marketData =
         new StubMarketDataProvider(
             new StubMarketDataProperties(List.of(sberDefinition(), gazpDefinition())), clock);

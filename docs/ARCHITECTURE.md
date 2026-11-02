@@ -175,10 +175,10 @@ trade / read-only — как у БКС), обмен на access-токен (JWT-
 `infra/services` (оркестрация: загрузка/сохранение состояния + вызов чистой доменной логики
 core). Зависимость односторонняя: `infra → core`, контролируется ArchUnit.
 
-Схему создаёт и изменяет только Flyway (`src/main/resources/db/migration/V1__init.sql`);
-`spring.jpa.hibernate.ddl-auto=validate` — Hibernate лишь сверяет сущности со схемой. Деньги —
-`NUMERIC(19,2)`, цены и средние цены — `NUMERIC(19,6)`, время — только
-`TIMESTAMP WITH TIME ZONE`.
+Схему создаёт и изменяет только Flyway (`src/main/resources/db/migration`; V1 — этап 3,
+V2 — таблицы рыночных данных этапа 4); `spring.jpa.hibernate.ddl-auto=validate` — Hibernate
+лишь сверяет сущности со схемой. Деньги — `NUMERIC(19,2)`, цены и средние цены —
+`NUMERIC(19,6)`, время — только `TIMESTAMP WITH TIME ZONE`.
 
 | Таблица | Ключевые колонки и ограничения |
 |---|---|
@@ -189,6 +189,8 @@ core). Зависимость односторонняя: `infra → core`, ко
 | `fills` | `id BIGSERIAL PK`, `order_id → orders`, `account_id → accounts`, `instrument_id → instruments`, `price NUMERIC(19,6)`, `quantity BIGINT`, `commission NUMERIC(19,2)`, `executed_at` |
 | `positions` | `id BIGSERIAL PK`, `account_id → accounts`, `instrument_id → instruments`, `quantity BIGINT` (short — отрицательное), `average_price NUMERIC(19,6)`, `updated_at`; `UNIQUE (account_id, instrument_id)`, `CHECK (quantity <> 0)`, `CHECK (average_price >= 0)` |
 | `nav_daily` | `id BIGSERIAL PK`, `account_id → accounts`, `nav_date DATE`, `as_of`, `cash/commission/variation_margin/market_value/nav NUMERIC(19,2)`, `holdings VARCHAR(4000) NOT NULL DEFAULT '[]'`; `UNIQUE (account_id, nav_date)` |
+| `market_data_snapshots` | `id BIGSERIAL PK`, `ts TIMESTAMPTZ NOT NULL`, `kind VARCHAR(16)` (QUOTE/ORDER_BOOK/TRADE), `ticker VARCHAR(32)`, `class_code VARCHAR(8)`, `payload JSONB NOT NULL`; индекс `(ticker, class_code, ts)` — таймлайн REPLAY |
+| `trading_calendar` | `id BIGSERIAL PK`, `engine/market/board VARCHAR(16)`, `trade_date DATE`, `is_trading BOOLEAN`, `open_utc/close_utc TIMESTAMPTZ NULL`; `UNIQUE (engine, market, board, trade_date)` |
 
 Стратегия записи:
 
@@ -204,10 +206,10 @@ core). Зависимость односторонняя: `infra → core`, ко
 - `nav_daily.holdings` — JSON-массив `NavSnapshot.Holding` (`VARCHAR(4000)`, по умолчанию
   `[]`); JSONB — открытый вопрос владельца.
 
-Отложено на следующие миграции: `order_events` (лог статусов), `market_data_snapshots` (запись
-RECORD), `strategy_tags`, `backtest_results`. Черновик `positions_daily` заменён таблицей
-`positions` (текущее состояние). Индексы на внешних ключах и на `fills.executed_at` /
-`orders.status` не созданы — открытый вопрос владельца.
+Отложено на следующие миграции: `order_events` (лог статусов), `strategy_tags`,
+`backtest_results`. Черновик `positions_daily` заменён таблицей `positions` (текущее
+состояние). Индексы на внешних ключах и на `fills.executed_at` / `orders.status` не созданы —
+открытый вопрос владельца.
 
 
 ## 10. Отчётность (core/reporting)
@@ -224,7 +226,9 @@ RECORD), `strategy_tags`, `backtest_results`. Черновик `positions_daily`
 ## 11. Конфигурация
 
 Единый `application.yml` + переменные окружения для секретов. Ключи (префикс `emulator.`):
-`mode` (LIVE/RECORD/REPLAY), `replay.*` (период, скорость, seed), `algoapi.token` (env),
+`marketdata.mode` (STUB/LIVE/RECORD/REPLAY), `replay.*` (начало таймлайна, скорость, seed),
+`marketdata.retention-days` (хранение записи RECORD), `algoapi.*` (base-url, таймауты, ретраи;
+токен — только env), `iss.*` (base-url, таймауты, ретраи, режим/рынок/борда),
 `brokers.bks.*` (тариф комиссий, пороги ликвидности, ГО, rate-limit), `db.*`.
 Профили Spring: `live`, `replay`, `test` (Testcontainers PostgreSQL — решить на этапе 3).
 Мониторинг — Spring Boot Actuator (набор эндпоинтов и путь монтирования — на этапе 2).

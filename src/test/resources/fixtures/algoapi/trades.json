@@ -1,0 +1,35 @@
+{
+  "trades": {
+    "metadata": {
+      "TRADENO": { "type": "int64" },
+      "TRADETIME": { "type": "time", "bytes": 10, "max_size": 0 },
+      "BOARDID": { "type": "string", "bytes": 12, "max_size": 0 },
+      "SECID": { "type": "string", "bytes": 36, "max_size": 0 },
+      "PRICE": { "type": "double" },
+      "QUANTITY": { "type": "int64" },
+      "VALUE": { "type": "double" },
+      "SYSTIME": { "type": "datetime", "bytes": 19, "max_size": 0 },
+      "BUYSELL": { "type": "string", "bytes": 3, "max_size": 0 },
+      "TRADINGSESSION": { "type": "string", "bytes": 3, "max_size": 0 },
+      "TRADEDATE": { "type": "date", "bytes": 10, "max_size": 0 }
+    },
+    "columns": [
+      "TRADENO",
+      "TRADETIME",
+      "BOARDID",
+      "SECID",
+      "PRICE",
+      "QUANTITY",
+      "VALUE",
+      "SYSTIME",
+      "BUYSELL",
+      "TRADINGSESSION",
+      "TRADEDATE"
+    ],
+    "data": [
+      [15195661254, "19:34:55", "TQBR", "SBER", 298.89, 10, 2988.9, "2026-11-02 19:34:55", "S", "0", "2026-11-02"],
+      [15195661255, "19:34:56", "TQBR", "SBER", 298.90, 25, 7472.5, "2026-11-02 19:34:56", "B", "0", "2026-11-02"],
+      [15195661256, "19:35:01", "TQBR", "SBER", 298.91, 5, 1494.55, "2026-11-02 19:35:01", "", "0", "2026-11-02"]
+    ]
+  }
+}
