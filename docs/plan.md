@@ -13,7 +13,7 @@
 
 ## Закрытые пункты
 
-- [x] Этап 4 — рыночные данные LIVE/RECORD/REPLAY (коммит `TODO`,
+- [x] Этап 4 — рыночные данные LIVE/RECORD/REPLAY (коммит `7c0b7fd`,
       2026-11-02; бриф `docs/agent-briefs/stage-4-marketdata.md`,
       отчёт `docs/agent-briefs/stage-4-report.md`).
 - [x] Этап 3 — домен + виртуальный портфель + PostgreSQL (коммит `68c4c9c`,
