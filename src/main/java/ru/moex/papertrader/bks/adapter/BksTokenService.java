@@ -56,6 +56,9 @@ public class BksTokenService {
     }
     BksRights rights = WRITE_CLIENT.equals(clientId) ? BksRights.TRADE : BksRights.READ_ONLY;
     Instant now = clock.instant();
+    // resolve() удаляет только запрошенный токен, поэтому чистим карту при каждой выдаче,
+    // иначе сессии, по которым никто не пришёл, остаются навсегда
+    accessTokens.values().removeIf(s -> !s.expiresAt().isAfter(now));
     Instant expiresAt = now.plus(properties.auth().accessTokenTtl());
     String accessToken = "bks-" + UUID.randomUUID();
     BksAccessSession session = new BksAccessSession(accessToken, clientId, rights, expiresAt);
@@ -86,6 +89,11 @@ public class BksTokenService {
       return Optional.empty();
     }
     return Optional.of(session);
+  }
+
+  /** Количество удерживаемых сессий; только для тестов. */
+  int activeSessionCount() {
+    return accessTokens.size();
   }
 
   private static Map<String, BksProperties.RefreshToken> buildRefreshTokens(

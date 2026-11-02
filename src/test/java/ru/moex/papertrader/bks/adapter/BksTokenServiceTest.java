@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -101,7 +102,37 @@ class BksTokenServiceTest {
     assertThat(service.resolve(null)).isEmpty();
   }
 
+  @Test
+  void expiredSessionsAreRemovedOnNextExchange() {
+    MutableClock clock = new MutableClock(NOW);
+    BksTokenService service = service(Duration.ofHours(24), clock);
+
+    service.exchange("trade-api-write", "trade-refresh", "refresh_token");
+    assertThat(service.activeSessionCount()).isEqualTo(1);
+
+    clock.advance(Duration.ofHours(25));
+    service.exchange("trade-api-write", "trade-refresh", "refresh_token");
+
+    assertThat(service.activeSessionCount()).isEqualTo(1);
+  }
+
+  @Test
+  void keepsLiveSessionsWhenNewTokenIsIssued() {
+    MutableClock clock = new MutableClock(NOW);
+    BksTokenService service = service(Duration.ofHours(24), clock);
+
+    BksTokenIssue first = service.exchange("trade-api-write", "trade-refresh", "refresh_token");
+    service.exchange("trade-api-read", "read-refresh", "refresh_token");
+
+    assertThat(service.activeSessionCount()).isEqualTo(2);
+    assertThat(service.resolve(first.accessToken())).isPresent();
+  }
+
   private static BksTokenService service(Duration accessTtl) {
+    return service(accessTtl, Clock.fixed(NOW, ZoneOffset.UTC));
+  }
+
+  private static BksTokenService service(Duration accessTtl, Clock clock) {
     BksProperties properties =
         new BksProperties(
             "/api/bks",
@@ -112,6 +143,35 @@ class BksTokenServiceTest {
                     new BksProperties.RefreshToken("trade-refresh", "trade-api-write"),
                     new BksProperties.RefreshToken("read-refresh", "trade-api-read"))),
             new BksProperties.RateLimit(false, 10));
-    return new BksTokenService(properties, Clock.fixed(NOW, ZoneOffset.UTC));
+    return new BksTokenService(properties, clock);
+  }
+
+  /** Управляемые часы: позволяют сдвинуть время за пределы TTL access-токена. */
+  private static final class MutableClock extends Clock {
+
+    private Instant now;
+
+    private MutableClock(Instant now) {
+      this.now = now;
+    }
+
+    void advance(Duration duration) {
+      now = now.plus(duration);
+    }
+
+    @Override
+    public ZoneId getZone() {
+      return ZoneOffset.UTC;
+    }
+
+    @Override
+    public Clock withZone(ZoneId zone) {
+      return this;
+    }
+
+    @Override
+    public Instant instant() {
+      return now;
+    }
   }
 }
