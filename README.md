@@ -13,12 +13,15 @@
 **REPLAY** (детерминированное воспроизведение — для сверки с бэктестом, целевое расхождение
 метрик < 30%).
 
-Текущий статус: этапы 1–2 завершены (скелет, контракт БКС HTTP MVP — `/api/bks/v1/**`,
-авторизация refresh→access, заявки, портфель, лимиты, рыночные данные на заглушке). Этап 3
-реализован — виртуальный портфель (кэш, позиции, ГО, вариационная маржа, комиссии, NAV) в
-PostgreSQL 18; коммит ожидает решений владельца. Подробности — [`docs/progress.md`](docs/progress.md),
-[`docs/agent-briefs/stage-2-report.md`](docs/agent-briefs/stage-2-report.md) и
-[`docs/agent-briefs/stage-3-report.md`](docs/agent-briefs/stage-3-report.md).
+Текущий статус: этапы 1–4 завершены (скелет, контракт БКС HTTP MVP — `/api/bks/v1/**`,
+авторизация refresh→access, заявки, портфель, лимиты, рыночные данные LIVE/RECORD/REPLAY).
+Этап 5 реализован — модель исполнения ордеров (матчинг по стакану, проскальзывание,
+ликвидность, FOK/GTD/DAY, журнал `order_events`); коммит ожидает подтверждения владельца.
+Подробности — [`docs/progress.md`](docs/progress.md) и отчёты этапов
+[`stage-2-report.md`](docs/agent-briefs/stage-2-report.md),
+[`stage-3-report.md`](docs/agent-briefs/stage-3-report.md),
+[`stage-4-report.md`](docs/agent-briefs/stage-4-report.md),
+[`stage-5-report.md`](docs/agent-briefs/stage-5-report.md).
 
 ## Документация
 

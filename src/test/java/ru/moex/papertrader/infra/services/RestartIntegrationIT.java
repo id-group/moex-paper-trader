@@ -233,6 +233,9 @@ class RestartIntegrationIT extends PostgresContainerSupport {
     if (!Boolean.TRUE.equals(schemaReady)) {
       return;
     }
+    jdbc.update(
+        "DELETE FROM order_events WHERE order_id IN (SELECT order_id FROM orders WHERE account_id = ?)",
+        ACCOUNT);
     jdbc.update("DELETE FROM fills WHERE account_id = ?", ACCOUNT);
     jdbc.update("DELETE FROM orders WHERE account_id = ?", ACCOUNT);
     jdbc.update("DELETE FROM positions WHERE account_id = ?", ACCOUNT);

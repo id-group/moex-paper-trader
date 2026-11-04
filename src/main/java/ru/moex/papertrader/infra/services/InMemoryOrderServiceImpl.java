@@ -89,6 +89,29 @@ public class InMemoryOrderServiceImpl implements OrderService {
 
   @Override
   public Order cancel(OrderIdType idType, String orderId) {
+    return cancel(idType, orderId, null);
+  }
+
+  @Override
+  public Order cancel(OrderIdType idType, String orderId, String reason) {
+    synchronized (mutationLock) {
+      Order order = resolve(idType, orderId);
+      order.cancel(clock.instant());
+      return order;
+    }
+  }
+
+  @Override
+  public Order reject(OrderIdType idType, String orderId, String reason) {
+    synchronized (mutationLock) {
+      Order order = resolve(idType, orderId);
+      order.reject(clock.instant());
+      return order;
+    }
+  }
+
+  @Override
+  public Order expire(OrderIdType idType, String orderId) {
     synchronized (mutationLock) {
       Order order = resolve(idType, orderId);
       order.cancel(clock.instant());

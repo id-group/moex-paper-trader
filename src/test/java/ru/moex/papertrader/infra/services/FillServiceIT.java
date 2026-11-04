@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 import ru.moex.papertrader.PostgresContainerSupport;
@@ -42,6 +43,7 @@ import ru.moex.papertrader.infra.services.exception.ResourceNotFoundException;
  * влияли на блокировки и кэш. Транзакция метода откатывается, начальный баланс задаётся явно.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@ActiveProfiles("test")
 @Transactional
 @Import(FixedClockTestConfiguration.class)
 @TestPropertySource(properties = "emulator.portfolio.account=IT-FILL-ACC-1")

@@ -3,9 +3,11 @@ package ru.moex.papertrader.bks.adapter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -71,7 +73,8 @@ public class BksOrderMapper {
         orderType,
         timeInForce,
         request.orderQuantity(),
-        request.price());
+        request.price(),
+        parseExpiryDate(request.expiryDate()));
   }
 
   public UUID parseUuid(String value, String field) {
@@ -184,7 +187,7 @@ public class BksOrderMapper {
         SECURITY_EXCHANGE,
         null,
         Integer.parseInt(order.timeInForce().code()),
-        null,
+        order.expiryDate() == null ? null : order.expiryDate().toString(),
         null,
         null,
         null,
@@ -290,6 +293,19 @@ public class BksOrderMapper {
 
   private static OffsetDateTime offset(Instant instant) {
     return OffsetDateTime.ofInstant(instant, UTC);
+  }
+
+  /** Контракт БКС передаёт expiryDate строкой ISO-8601 ({@code yyyy-MM-dd}). */
+  private static LocalDate parseExpiryDate(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      return LocalDate.parse(value.trim());
+    } catch (DateTimeParseException exception) {
+      throw new InvalidRequestException(
+          "expiryDate должен быть датой в формате yyyy-MM-dd", exception);
+    }
   }
 
   private static UUID requireUuid(String value, String field) {

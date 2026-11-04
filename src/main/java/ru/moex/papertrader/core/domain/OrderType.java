@@ -20,7 +20,10 @@ public enum OrderType {
     return code;
   }
 
-  /** Этап 2 поддерживает только рыночные и лимитные заявки; остальные — этап 5. */
+  /**
+   * Этап 5 поддерживает только рыночные и лимитные заявки. Типы 3–5 контракта (алгоритмическая GTD,
+   * iceberg, условная) остаются заглушкой NOT_IMPLEMENTED — см. {@code Order.accept}.
+   */
   public boolean isSupported() {
     return this == MARKET || this == LIMIT;
   }

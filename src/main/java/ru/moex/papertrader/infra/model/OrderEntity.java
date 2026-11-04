@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import ru.moex.papertrader.core.domain.OrderStatus;
 import ru.moex.papertrader.core.domain.OrderType;
@@ -53,6 +54,10 @@ public class OrderEntity {
   @Column(name = "price", precision = 19, scale = 6)
   private BigDecimal price;
 
+  /** Срок действия GTD; для DAY/FOK — {@code null}. */
+  @Column(name = "expiry_date")
+  private LocalDate expiryDate;
+
   @Column(name = "client_code", length = 64)
   private String clientCode;
 
@@ -92,6 +97,44 @@ public class OrderEntity {
       OrderStatus status,
       long executedQuantity,
       BigDecimal averagePrice) {
+    this(
+        orderId,
+        orderNum,
+        clientOrderId,
+        accountId,
+        instrumentId,
+        side,
+        orderType,
+        timeInForce,
+        quantity,
+        price,
+        null,
+        clientCode,
+        createdAt,
+        updatedAt,
+        status,
+        executedQuantity,
+        averagePrice);
+  }
+
+  public OrderEntity(
+      String orderId,
+      long orderNum,
+      UUID clientOrderId,
+      String accountId,
+      Long instrumentId,
+      Side side,
+      OrderType orderType,
+      TimeInForce timeInForce,
+      long quantity,
+      BigDecimal price,
+      LocalDate expiryDate,
+      String clientCode,
+      Instant createdAt,
+      Instant updatedAt,
+      OrderStatus status,
+      long executedQuantity,
+      BigDecimal averagePrice) {
     this.orderId = orderId;
     this.orderNum = orderNum;
     this.clientOrderId = clientOrderId;
@@ -102,6 +145,7 @@ public class OrderEntity {
     this.timeInForce = timeInForce;
     this.quantity = quantity;
     this.price = price;
+    this.expiryDate = expiryDate;
     this.clientCode = clientCode;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
@@ -148,6 +192,10 @@ public class OrderEntity {
 
   public BigDecimal getPrice() {
     return price;
+  }
+
+  public LocalDate getExpiryDate() {
+    return expiryDate;
   }
 
   public String getClientCode() {

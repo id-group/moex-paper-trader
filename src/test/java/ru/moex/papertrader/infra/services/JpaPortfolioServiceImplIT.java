@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import ru.moex.papertrader.PostgresContainerSupport;
 import ru.moex.papertrader.core.domain.NewOrder;
@@ -34,6 +35,7 @@ import ru.moex.papertrader.infra.repository.PositionRepository;
  * и правки баланса.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@ActiveProfiles("test")
 @Transactional
 @Import(FixedClockTestConfiguration.class)
 class JpaPortfolioServiceImplIT extends PostgresContainerSupport {

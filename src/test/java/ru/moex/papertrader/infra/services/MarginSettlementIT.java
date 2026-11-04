@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 import ru.moex.papertrader.PostgresContainerSupport;
@@ -51,6 +52,7 @@ import ru.moex.papertrader.infra.services.exception.ConflictException;
  * выбранных тикеров переопределяется. Транзакция метода откатывается.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@ActiveProfiles("test")
 @Transactional
 @Import({FixedClockTestConfiguration.class, MarginSettlementIT.SettlementPriceConfiguration.class})
 @TestPropertySource(properties = "emulator.portfolio.account=IT-SETTLE-ACC-1")

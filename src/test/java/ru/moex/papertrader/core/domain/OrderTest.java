@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -87,7 +88,8 @@ class OrderTest {
                     "PAPER-0001",
                     NOW))
         .isInstanceOf(InvalidOrderException.class)
-        .hasMessageContaining("orderType");
+        .hasMessageContaining("orderType")
+        .hasMessageContaining("NOT_IMPLEMENTED");
   }
 
   @Test
@@ -216,6 +218,7 @@ class OrderTest {
             UPDATED,
             OrderStatus.NEW,
             0,
+            null,
             null);
 
     assertThat(order.price()).isNull();
@@ -263,6 +266,7 @@ class OrderTest {
                     UPDATED,
                     OrderStatus.NEW,
                     0,
+                    null,
                     null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("price");
@@ -492,6 +496,119 @@ class OrderTest {
     assertThat(order.updatedAt()).isEqualTo(cancelledAt);
   }
 
+  @Test
+  void acceptsGtdOrderWithExpiryDate() {
+    LocalDate expiry = LocalDate.of(2026, 11, 10);
+    Order order =
+        Order.accept(
+            new NewOrder(
+                UUID.randomUUID(),
+                "SBER",
+                "TQBR",
+                Side.BUY,
+                OrderType.LIMIT,
+                TimeInForce.GOOD_TILL_DATE,
+                10,
+                new BigDecimal("285.50"),
+                expiry),
+            TestInstruments.sber(),
+            ORDER_ID,
+            7,
+            CLIENT_CODE,
+            NOW);
+
+    assertThat(order.timeInForce()).isEqualTo(TimeInForce.GOOD_TILL_DATE);
+    assertThat(order.expiryDate()).isEqualTo(expiry);
+  }
+
+  @Test
+  void rejectsGtdOrderWithoutExpiryDate() {
+    assertThatThrownBy(
+            () ->
+                Order.accept(
+                    new NewOrder(
+                        UUID.randomUUID(),
+                        "SBER",
+                        "TQBR",
+                        Side.BUY,
+                        OrderType.LIMIT,
+                        TimeInForce.GOOD_TILL_DATE,
+                        10,
+                        new BigDecimal("285.50")),
+                    TestInstruments.sber(),
+                    ORDER_ID,
+                    7,
+                    CLIENT_CODE,
+                    NOW))
+        .isInstanceOf(InvalidOrderException.class)
+        .hasMessageContaining("expiryDate");
+  }
+
+  @Test
+  void rejectsGtdOrderWithPastExpiryDate() {
+    assertThatThrownBy(
+            () ->
+                Order.accept(
+                    new NewOrder(
+                        UUID.randomUUID(),
+                        "SBER",
+                        "TQBR",
+                        Side.BUY,
+                        OrderType.LIMIT,
+                        TimeInForce.GOOD_TILL_DATE,
+                        10,
+                        new BigDecimal("285.50"),
+                        LocalDate.of(2026, 10, 31)),
+                    TestInstruments.sber(),
+                    ORDER_ID,
+                    7,
+                    CLIENT_CODE,
+                    NOW))
+        .isInstanceOf(InvalidOrderException.class)
+        .hasMessageContaining("прошлом");
+  }
+
+  @Test
+  void ignoresExpiryDateForDayOrder() {
+    Order order =
+        Order.accept(
+            new NewOrder(
+                UUID.randomUUID(),
+                "SBER",
+                "TQBR",
+                Side.BUY,
+                OrderType.LIMIT,
+                TimeInForce.DAY,
+                10,
+                new BigDecimal("285.50"),
+                LocalDate.of(2026, 11, 10)),
+            TestInstruments.sber(),
+            ORDER_ID,
+            7,
+            CLIENT_CODE,
+            NOW);
+
+    assertThat(order.expiryDate()).isNull();
+  }
+
+  @Test
+  void rejectsNewOrder() {
+    Order order = accepted(10, new BigDecimal("285.50"));
+
+    order.reject(FILL_TIME);
+
+    assertThat(order.status()).isEqualTo(OrderStatus.REJECTED);
+    assertThat(order.updatedAt()).isEqualTo(FILL_TIME);
+  }
+
+  @Test
+  void rejectIsForbiddenForCompletedOrder() {
+    Order order = accepted(10, new BigDecimal("285.50"));
+    order.cancel(FILL_TIME);
+
+    assertThatThrownBy(() -> order.reject(FILL_TIME)).isInstanceOf(InvalidOrderException.class);
+  }
+
   private static Order accepted(long quantity, BigDecimal price) {
     return Order.accept(
         newOrder(OrderType.LIMIT, price, quantity),
@@ -523,7 +640,8 @@ class OrderTest {
         UPDATED,
         status,
         executedQuantity,
-        averagePrice);
+        averagePrice,
+        null);
   }
 
   private static NewOrder newOrder(OrderType type, BigDecimal price, long quantity) {

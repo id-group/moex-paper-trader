@@ -51,10 +51,13 @@ class TradingFlowIntegrationIT extends BksApiTestSupport {
 
   @AfterEach
   void deleteAccountData() {
-    // Порядок продиктован внешними ключами: fills → orders → positions → nav_daily →
+    // Порядок продиктован внешними ключами: order_events → fills → orders → positions → nav_daily →
     // account_balances → accounts. Общие для BKS-тестов инструменты не трогаем, кроме SiU6/SPBFUT:
     // его создаёт только этот сценарий, а JpaOrderServiceImplIT проверяет автозоздание инструмента
     // и требует, чтобы строки ещё не было.
+    jdbcTemplate.update(
+        "DELETE FROM order_events WHERE order_id IN (SELECT order_id FROM orders WHERE account_id = ?)",
+        ACCOUNT);
     jdbcTemplate.update("DELETE FROM fills WHERE account_id = ?", ACCOUNT);
     jdbcTemplate.update("DELETE FROM orders WHERE account_id = ?", ACCOUNT);
     jdbcTemplate.update("DELETE FROM positions WHERE account_id = ?", ACCOUNT);

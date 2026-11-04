@@ -12,7 +12,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.moex.papertrader.PostgresContainerSupport;
 
-/** Проверяет, что миграции V1–V2 создают ровно минимальный набор таблиц этапов 3–4. */
+/** Проверяет, что миграции V1–V3 создают ровно минимальный набор таблиц этапов 3–5. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class DatabaseSchemaIT extends PostgresContainerSupport {
@@ -20,7 +20,7 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
   @Autowired private JdbcTemplate jdbcTemplate;
 
   @Test
-  void createsExactlyNineDomainTables() {
+  void createsExactlyTenDomainTables() {
     List<String> tables =
         jdbcTemplate.queryForList(
             "SELECT table_name FROM information_schema.tables"
@@ -36,6 +36,7 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
             "instruments",
             "market_data_snapshots",
             "nav_daily",
+            "order_events",
             "orders",
             "positions",
             "trading_calendar");
@@ -62,12 +63,14 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
             "instruments.lot_size",
             "orders.price",
             "fills.price",
+            "order_events.price",
             "positions.average_price");
 
     assertThat(columns.get("nav_daily.cash").get("numeric_scale")).isEqualTo(2);
     assertThat(columns.get("fills.commission").get("numeric_scale")).isEqualTo(2);
     assertThat(columns.get("instruments.lot_size").get("numeric_scale")).isEqualTo(6);
     assertThat(columns.get("fills.price").get("numeric_scale")).isEqualTo(6);
+    assertThat(columns.get("order_events.price").get("numeric_scale")).isEqualTo(6);
     assertThat(columns.get("positions.average_price").get("numeric_scale")).isEqualTo(6);
     assertThat(columns.get("nav_daily.cash").get("numeric_precision")).isEqualTo(19);
   }

@@ -5,13 +5,17 @@
 
 ## Сейчас
 
-- [ ] Этапы 5–7 — см. `docs/roadmap.md` (этап 5 — отдельное окно после коммита этапа 4).
+- [ ] Этап 6 — отчётность и метрики; бриф `docs/agent-briefs/stage-6-reporting.md`.
 
 ## Дальше
 
-- [ ] Этапы 5–7 — см. `docs/roadmap.md`.
+- [ ] Этап 7 — интеграция и сравнение с бэктестом; бриф `docs/agent-briefs/stage-7-integration.md`.
 
 ## Закрытые пункты
+
+- [x] Этап 5 — модель исполнения ордеров (2026-11-04; ветка `feature/stage-5-execution`,
+      коммит — после подтверждения владельца; бриф `docs/agent-briefs/stage-5-execution.md`,
+      отчёт `docs/agent-briefs/stage-5-report.md`).
 
 - [x] Этап 4 — рыночные данные LIVE/RECORD/REPLAY (коммит `7c0b7fd`,
       2026-11-02; бриф `docs/agent-briefs/stage-4-marketdata.md`,

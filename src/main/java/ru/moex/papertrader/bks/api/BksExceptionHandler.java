@@ -15,6 +15,7 @@ import ru.moex.papertrader.bks.contract.ErrorType;
 import ru.moex.papertrader.core.domain.InvalidOrderException;
 import ru.moex.papertrader.infra.services.exception.ConflictException;
 import ru.moex.papertrader.infra.services.exception.InvalidRequestException;
+import ru.moex.papertrader.infra.services.exception.LiquidityExceededException;
 import ru.moex.papertrader.infra.services.exception.ResourceNotFoundException;
 
 /** Переводит исключения в {@link ErrorResponse} с HTTP-кодами контракта БКС. */
@@ -53,6 +54,14 @@ public class BksExceptionHandler {
     return respond(
         UNPROCESSABLE,
         errorFactory.error(ErrorType.VALIDATION_ERROR, null, exception.getMessage()));
+  }
+
+  /** Превышение порога ADV — 429 RESOURCE_EXHAUSTED общего контракта БКС. */
+  @ExceptionHandler(LiquidityExceededException.class)
+  public ResponseEntity<ErrorResponse> liquidityExceeded(LiquidityExceededException exception) {
+    return respond(
+        HttpStatus.TOO_MANY_REQUESTS,
+        errorFactory.error(ErrorType.RESOURCE_EXHAUSTED, null, exception.getMessage()));
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)

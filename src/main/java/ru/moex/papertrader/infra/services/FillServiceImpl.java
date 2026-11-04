@@ -21,6 +21,9 @@ import ru.moex.papertrader.core.domain.Order;
 import ru.moex.papertrader.core.domain.OrderIdType;
 import ru.moex.papertrader.core.domain.OrderStatus;
 import ru.moex.papertrader.core.domain.Side;
+import ru.moex.papertrader.core.execution.MatchFill;
+import ru.moex.papertrader.core.execution.OrderEvent;
+import ru.moex.papertrader.core.execution.OrderEventType;
 import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.MarketDataProvider;
 import ru.moex.papertrader.core.marketdata.Quote;
@@ -90,6 +93,7 @@ public class FillServiceImpl implements FillService {
   private final InstrumentMapper instrumentMapper;
   private final VirtualPortfolioMapper virtualPortfolioMapper;
   private final OrderLocksCalculator orderLocksCalculator;
+  private final OrderEventRecorder eventRecorder;
 
   public FillServiceImpl(
       Clock clock,
@@ -106,7 +110,8 @@ public class FillServiceImpl implements FillService {
       FillMapper fillMapper,
       InstrumentMapper instrumentMapper,
       VirtualPortfolioMapper virtualPortfolioMapper,
-      OrderLocksCalculator orderLocksCalculator) {
+      OrderLocksCalculator orderLocksCalculator,
+      OrderEventRecorder eventRecorder) {
     this.clock = clock;
     this.marketDataProvider = marketDataProvider;
     this.properties = properties;
@@ -122,6 +127,7 @@ public class FillServiceImpl implements FillService {
     this.instrumentMapper = instrumentMapper;
     this.virtualPortfolioMapper = virtualPortfolioMapper;
     this.orderLocksCalculator = orderLocksCalculator;
+    this.eventRecorder = eventRecorder;
   }
 
   @Override
@@ -168,9 +174,22 @@ public class FillServiceImpl implements FillService {
       // сохраняет ни сделку, ни позицию, ни баланс.
       updateFuturesMargin(portfolio, order, marginBefore);
     }
+    OrderStatus previousStatus = order.status();
     order.applyFill(fill);
 
     persist(accountId, order, instrument, fill, portfolio, now);
+    eventRecorder.record(
+        new OrderEvent(
+            order.orderId(),
+            order.status() == OrderStatus.FILLED
+                ? OrderEventType.FILLED
+                : OrderEventType.PARTIALLY_FILLED,
+            previousStatus,
+            order.status(),
+            fill.quantity(),
+            fill.price(),
+            null,
+            fill.executedAt()));
     log.debug(
         "Сделка по заявке {}: {} {}/{} по {} с комиссией {}",
         order.orderId(),
@@ -180,6 +199,20 @@ public class FillServiceImpl implements FillService {
         effectivePrice,
         commission);
     return order;
+  }
+
+  @Override
+  @Transactional
+  public Order fillAll(OrderIdType idType, String orderId, List<MatchFill> fills) {
+    if (fills == null || fills.isEmpty()) {
+      throw new InvalidOrderException("Список сделок не может быть пустым");
+    }
+    Order result = null;
+    // Самовызов fill() остаётся внутри транзакции fillAll: любая ошибка откатывает весь набор.
+    for (MatchFill matchFill : fills) {
+      result = fill(idType, orderId, matchFill.quantity(), matchFill.price());
+    }
+    return result;
   }
 
   private static void requireActive(Order order) {

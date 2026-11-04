@@ -18,9 +18,9 @@ public enum TimeInForce {
     return code;
   }
 
-  /** GTD применяется только к алгоритмическим заявкам, которые появятся на этапе 5. */
+  /** Этап 5 поддерживает все режимы контракта: DAY, FOK и GTD (с обязательным expiryDate). */
   public boolean isSupported() {
-    return this != GOOD_TILL_DATE;
+    return true;
   }
 
   public static Optional<TimeInForce> fromCode(String code) {

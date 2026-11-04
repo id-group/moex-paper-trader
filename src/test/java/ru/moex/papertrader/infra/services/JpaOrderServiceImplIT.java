@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import ru.moex.papertrader.PostgresContainerSupport;
 import ru.moex.papertrader.core.domain.InvalidOrderException;
@@ -25,8 +27,11 @@ import ru.moex.papertrader.core.domain.OrderType;
 import ru.moex.papertrader.core.domain.PageResult;
 import ru.moex.papertrader.core.domain.Side;
 import ru.moex.papertrader.core.domain.TimeInForce;
+import ru.moex.papertrader.core.execution.OrderEventType;
 import ru.moex.papertrader.infra.model.InstrumentEntity;
+import ru.moex.papertrader.infra.model.OrderEventEntity;
 import ru.moex.papertrader.infra.repository.InstrumentRepository;
+import ru.moex.papertrader.infra.repository.OrderEventRepository;
 import ru.moex.papertrader.infra.repository.OrderRepository;
 import ru.moex.papertrader.infra.services.exception.ConflictException;
 import ru.moex.papertrader.infra.services.exception.InvalidRequestException;
@@ -39,6 +44,7 @@ import ru.moex.papertrader.infra.services.exception.ResourceNotFoundException;
  * Номера заявок проверяются относительно текущего максимума, а не абсолютным значением.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@ActiveProfiles("test")
 @Transactional
 @Import(FixedClockTestConfiguration.class)
 class JpaOrderServiceImplIT extends PostgresContainerSupport {
@@ -52,6 +58,7 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
   @Autowired private JpaOrderServiceImpl service;
   @Autowired private OrderRepository orders;
   @Autowired private InstrumentRepository instruments;
+  @Autowired private OrderEventRepository orderEvents;
   @Autowired private EntityManager entityManager;
 
   @Test
@@ -162,6 +169,95 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
   }
 
   @Test
+  void placeWritesCreatedEvent() {
+    Order placed = service.place(limitOrder("SBER", Side.BUY, "285.5", 10));
+    flushAndClear();
+
+    List<OrderEventEntity> events = events(placed.orderId());
+    assertThat(events).hasSize(1);
+    OrderEventEntity created = events.get(0);
+    assertThat(created.getEventType()).isEqualTo(OrderEventType.CREATED);
+    assertThat(created.getPreviousStatus()).isNull();
+    assertThat(created.getStatus()).isEqualTo(OrderStatus.NEW);
+    assertThat(created.getQuantity()).isEqualTo(10L);
+    assertThat(created.getPrice()).isEqualByComparingTo("285.5");
+  }
+
+  @Test
+  void cancelWithReasonWritesCanceledEventWithRemainingQuantity() {
+    Order placed = service.place(limitOrder("SBER", Side.BUY, "285.5", 10));
+    flushAndClear();
+
+    service.cancel(OrderIdType.EXCHANGE, placed.orderId(), "Клиент снял заявку");
+    flushAndClear();
+
+    List<OrderEventEntity> events = events(placed.orderId());
+    assertThat(events)
+        .extracting(OrderEventEntity::getEventType)
+        .containsExactly(OrderEventType.CREATED, OrderEventType.CANCELED);
+    OrderEventEntity canceled = events.get(1);
+    assertThat(canceled.getPreviousStatus()).isEqualTo(OrderStatus.NEW);
+    assertThat(canceled.getStatus()).isEqualTo(OrderStatus.CANCELED);
+    assertThat(canceled.getQuantity()).isEqualTo(10L);
+    assertThat(canceled.getReason()).isEqualTo("Клиент снял заявку");
+  }
+
+  @Test
+  void rejectPersistsStatusAndWritesRejectedEvent() {
+    Order placed = service.place(limitOrder("SBER", Side.BUY, "285.5", 10));
+    flushAndClear();
+
+    Order rejected =
+        service.reject(OrderIdType.EXCHANGE, placed.orderId(), "FOK: недостаточно объёма");
+    flushAndClear();
+
+    assertThat(rejected.status()).isEqualTo(OrderStatus.REJECTED);
+    assertThat(service.get(OrderIdType.EXCHANGE, placed.orderId()).status())
+        .isEqualTo(OrderStatus.REJECTED);
+    List<OrderEventEntity> events = events(placed.orderId());
+    assertThat(events)
+        .extracting(OrderEventEntity::getEventType)
+        .containsExactly(OrderEventType.CREATED, OrderEventType.REJECTED);
+    OrderEventEntity rejection = events.get(1);
+    assertThat(rejection.getPreviousStatus()).isEqualTo(OrderStatus.NEW);
+    assertThat(rejection.getStatus()).isEqualTo(OrderStatus.REJECTED);
+    assertThat(rejection.getReason()).contains("FOK");
+  }
+
+  @Test
+  void expireCancelsOrderAndWritesExpiredEvent() {
+    Order placed = service.place(limitOrder("SBER", Side.BUY, "285.5", 10));
+    flushAndClear();
+
+    Order expired = service.expire(OrderIdType.EXCHANGE, placed.orderId());
+    flushAndClear();
+
+    assertThat(expired.status()).isEqualTo(OrderStatus.CANCELED);
+    assertThat(service.get(OrderIdType.EXCHANGE, placed.orderId()).status())
+        .isEqualTo(OrderStatus.CANCELED);
+    List<OrderEventEntity> events = events(placed.orderId());
+    assertThat(events)
+        .extracting(OrderEventEntity::getEventType)
+        .containsExactly(OrderEventType.CREATED, OrderEventType.EXPIRED);
+    OrderEventEntity expiration = events.get(1);
+    assertThat(expiration.getPreviousStatus()).isEqualTo(OrderStatus.NEW);
+    assertThat(expiration.getStatus()).isEqualTo(OrderStatus.CANCELED);
+    assertThat(expiration.getReason()).contains("Срок действия");
+  }
+
+  @Test
+  void gtdExpiryDateSurvivesRoundTrip() {
+    LocalDate expiryDate = LocalDate.of(2026, 11, 10);
+    Order placed = service.place(gtdOrder("SBER", Side.BUY, "285.5", 10, expiryDate));
+    flushAndClear();
+
+    Order loaded = service.get(OrderIdType.EXCHANGE, placed.orderId());
+
+    assertThat(loaded.timeInForce()).isEqualTo(TimeInForce.GOOD_TILL_DATE);
+    assertThat(loaded.expiryDate()).isEqualTo(expiryDate);
+  }
+
+  @Test
   void duplicateClientOrderIdIsRejected() {
     UUID clientOrderId = UUID.randomUUID();
     service.place(limitOrder(clientOrderId, "SBER", Side.BUY, "285.5", 10));
@@ -248,6 +344,10 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
         .hasMessage("orderId должен быть UUID при orderIdType=1");
   }
 
+  private List<OrderEventEntity> events(String orderId) {
+    return orderEvents.findByOrderIdOrderByOccurredAtAscIdAsc(orderId);
+  }
+
   private void flushAndClear() {
     entityManager.flush();
     entityManager.clear();
@@ -283,5 +383,19 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
   private static NewOrder marketOrder(String ticker, Side side, long quantity) {
     return new NewOrder(
         UUID.randomUUID(), ticker, "TQBR", side, OrderType.MARKET, TimeInForce.DAY, quantity, null);
+  }
+
+  private static NewOrder gtdOrder(
+      String ticker, Side side, String price, long quantity, LocalDate expiryDate) {
+    return new NewOrder(
+        UUID.randomUUID(),
+        ticker,
+        "TQBR",
+        side,
+        OrderType.LIMIT,
+        TimeInForce.GOOD_TILL_DATE,
+        quantity,
+        new BigDecimal(price),
+        expiryDate);
   }
 }

@@ -11,6 +11,7 @@
    `docs/agent-briefs/stage-3-report.md`)
 4. ✅ Рыночные данные LIVE/RECORD/REPLAY — готово (отчёт
    `docs/agent-briefs/stage-4-report.md`)
-5. Модель исполнения — `docs/agent-briefs/stage-5-execution.md`
+5. ✅ Модель исполнения — готово (бриф `docs/agent-briefs/stage-5-execution.md`, отчёт
+   `docs/agent-briefs/stage-5-report.md`)
 6. Отчётность и метрики — `docs/agent-briefs/stage-6-reporting.md`
 7. Интеграционный прогон, сверка с бэктестом — `docs/agent-briefs/stage-7-integration.md`

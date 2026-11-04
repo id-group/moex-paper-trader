@@ -33,6 +33,23 @@ emulator:
     account: PAPER-0001
     initial-cash: 1000000.00
     currency: RUB
+  # Модель исполнения этапа 5: планировщик, стакан, ликвидность и проскальзывание.
+  execution:
+    # Фоновый проход исполнения активных заявок; в тестах выключается профилем test.
+    scheduler-enabled: true
+    tick-ms: 1000
+    # Глубина стакана для матчинга маркет-заявок.
+    order-book-depth: 10
+    # REJECT — объём больше порога ADV отклоняется (HTTP 429 RESOURCE_EXHAUSTED);
+    # SPLIT — исполняется частями не больше порога.
+    liquidity-policy: REJECT
+    liquidity-threshold-percent: 5
+    # Базовый компонент проскальзывания 0.05–0.15% (доли, не проценты);
+    # seed фиксирует генератор для STUB/REPLAY, LIVE/RECORD используют системный seed.
+    slippage:
+      seed: 42
+      base-min: 0.0005
+      base-max: 0.0015
   marketdata:
     # Режим рыночных данных: STUB (заглушка, по умолчанию) / LIVE / RECORD / REPLAY.
     mode: STUB

@@ -3,6 +3,8 @@ package ru.moex.papertrader.core.domain;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -23,6 +25,9 @@ public final class Order {
 
   private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
+  /** Москва: срок GTD задаётся календарной датой торгового дня. */
+  private static final ZoneId MOSCOW = ZoneId.of("Europe/Moscow");
+
   private final long orderNum;
   private final UUID clientOrderId;
   private final String orderId;
@@ -32,6 +37,7 @@ public final class Order {
   private final TimeInForce timeInForce;
   private final long quantity;
   private final BigDecimal price;
+  private final LocalDate expiryDate;
   private final String clientCode;
   private final Instant createdAt;
 
@@ -50,6 +56,7 @@ public final class Order {
       TimeInForce timeInForce,
       long quantity,
       BigDecimal price,
+      LocalDate expiryDate,
       String clientCode,
       Instant createdAt) {
     this.orderNum = orderNum;
@@ -61,6 +68,7 @@ public final class Order {
     this.timeInForce = timeInForce;
     this.quantity = quantity;
     this.price = price;
+    this.expiryDate = expiryDate;
     this.clientCode = clientCode;
     this.createdAt = createdAt;
     this.updatedAt = createdAt;
@@ -86,8 +94,14 @@ public final class Order {
       throw new InvalidOrderException("orderQuantity должен быть больше 0");
     }
     if (!request.orderType().isSupported()) {
+      // TODO(этап 5): orderType 3–5 (алгоритмическая GTD, iceberg, условная) — заглушка по
+      //  брифу; реализация потребует отдельной модели исполнения.
       throw new InvalidOrderException(
-          "orderType " + request.orderType().code() + " пока не поддерживается");
+          "orderType "
+              + request.orderType().code()
+              + " ("
+              + request.orderType()
+              + ") не реализован: NOT_IMPLEMENTED");
     }
     if (!request.timeInForce().isSupported()) {
       throw new InvalidOrderException(
@@ -101,6 +115,18 @@ public final class Order {
     } else {
       effectivePrice = null;
     }
+    LocalDate expiryDate = request.expiryDate();
+    if (request.timeInForce() == TimeInForce.GOOD_TILL_DATE) {
+      if (expiryDate == null) {
+        throw new InvalidOrderException("expiryDate обязателен для timeInForce=GTD");
+      }
+      if (expiryDate.isBefore(now.atZone(MOSCOW).toLocalDate())) {
+        throw new InvalidOrderException("expiryDate не может быть в прошлом");
+      }
+    } else {
+      // Срок действия относится только к GTD: для DAY/FOK поле контракта игнорируется.
+      expiryDate = null;
+    }
     return new Order(
         orderNum,
         request.clientOrderId(),
@@ -111,6 +137,7 @@ public final class Order {
         request.timeInForce(),
         request.quantity(),
         effectivePrice,
+        expiryDate,
         clientCode,
         now);
   }
@@ -138,7 +165,8 @@ public final class Order {
       Instant updatedAt,
       OrderStatus status,
       long executedQuantity,
-      BigDecimal averagePrice) {
+      BigDecimal averagePrice,
+      LocalDate expiryDate) {
     Objects.requireNonNull(clientOrderId, "clientOrderId");
     Objects.requireNonNull(orderId, "orderId");
     Objects.requireNonNull(instrument, "instrument");
@@ -189,6 +217,14 @@ public final class Order {
     if (status == OrderStatus.NEW && executedQuantity != 0) {
       throw new IllegalArgumentException("статус NEW требует executedQuantity = 0");
     }
+    if (timeInForce == TimeInForce.GOOD_TILL_DATE) {
+      if (expiryDate == null) {
+        throw new IllegalArgumentException("expiryDate обязателен для timeInForce=GTD");
+      }
+    } else if (expiryDate != null) {
+      throw new IllegalArgumentException(
+          "expiryDate допустим только для timeInForce=GTD, а не " + timeInForce);
+    }
     Order order =
         new Order(
             orderNum,
@@ -200,6 +236,7 @@ public final class Order {
             timeInForce,
             quantity,
             price,
+            expiryDate,
             clientCode,
             createdAt);
     order.updatedAt = updatedAt;
@@ -265,6 +302,19 @@ public final class Order {
     updatedAt = at;
   }
 
+  /**
+   * Отклоняет заявку, которая не может быть исполнена (FOK без полного объёма, ликвидность,
+   * недостаток средств). Отклонение фиксируется в журнале {@code order_events}.
+   */
+  public void reject(Instant at) {
+    if (status != OrderStatus.NEW && status != OrderStatus.PENDING_NEW) {
+      throw new InvalidOrderException(
+          "Заявка " + orderId + " не может быть отклонена в статусе " + status.code());
+    }
+    status = OrderStatus.REJECTED;
+    updatedAt = at;
+  }
+
   public long orderNum() {
     return orderNum;
   }
@@ -299,6 +349,11 @@ public final class Order {
 
   public BigDecimal price() {
     return price;
+  }
+
+  /** Срок действия GTD; {@code null} для DAY и FOK. */
+  public LocalDate expiryDate() {
+    return expiryDate;
   }
 
   public String clientCode() {

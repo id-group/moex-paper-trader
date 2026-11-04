@@ -25,6 +25,26 @@
   OpenCode (`opencode service set env ...`), сервис перезапущен; `.\gradlew.bat --version`
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.
 
+- **Этап 5 завершён — модель исполнения ордеров** (2026-11-04; ветка
+  `feature/stage-5-execution`, коммит — после подтверждения владельца). Отчёт:
+  `docs/agent-briefs/stage-5-report.md`.
+  - `core/execution`: `MatchingEngine`, `SpecSlippageModel` (база 0.05–0.15 % + тиры ADV),
+    `AdvLiquidityPolicy` (REJECT/SPLIT), `MatchFill`/`MatchResult`, события жизненного цикла.
+  - Маркет — немедленный кросс стакана с проскальзыванием в неблагоприятную сторону; лимит —
+    ожидание пересечения и исполнение по «лимит или лучше»; FOK — all-or-nothing; маркет-остаток
+    снимается, лимитный остаётся активным.
+  - Жизненный цикл `NEW → PARTIALLY_FILLED → FILLED / CANCELED / REJECTED`, журнал
+    `order_events` (миграция V3: `orders.expiry_date`, `order_events`), GTD по `expiryDate`,
+    DAY — при закрытии сессии.
+  - `infra/services`: `ExecutionServiceImpl`, `OrderPlacementService` (предпроверка ADV и
+    best-effort исполнение при постановке), `ExecutionScheduler` (`scheduler-enabled`),
+    `ExecutionProperties`; ошибка ликвидности → HTTP 429 `RESOURCE_EXHAUSTED`.
+  - BKS: create через `OrderPlacementService`, `expiryDate` в запросе/ответе.
+  - Проверка: `./gradlew spotlessCheck test` — 619 тестов, 81 сюита, 0 падений; JaCoCo bundle
+    92 % инструкций / 77 % ветвей, `core.execution` — 94 % / 84 %.
+  - Решения: REJECT + 429 по умолчанию (SPLIT настройкой); планировщик + попытка при
+    постановке; GTD/FOK полностью; orderType 3–5 — заглушка `NOT_IMPLEMENTED`.
+
 - **Этап 4 завершён — рыночные данные LIVE/RECORD/REPLAY** (2026-11-02; коммит
   `7c0b7fd`, решения владельца — `d27d953`). Отчёт: `docs/agent-briefs/stage-4-report.md`.
   - Контрактное ядро: порты `Clock` (`SystemClock`/`VirtualClock`), `TradingCalendar`,

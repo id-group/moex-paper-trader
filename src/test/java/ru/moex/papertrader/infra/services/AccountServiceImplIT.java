@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 import ru.moex.papertrader.PostgresContainerSupport;
@@ -24,6 +25,7 @@ import ru.moex.papertrader.infra.repository.AccountRepository;
  * не зависеть от данных общей БД прогона.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@ActiveProfiles("test")
 @Transactional
 @Import(FixedClockTestConfiguration.class)
 @TestPropertySource(properties = "emulator.portfolio.account=IT-SEED-ACC-1")

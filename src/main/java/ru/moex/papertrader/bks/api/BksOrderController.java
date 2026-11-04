@@ -20,6 +20,7 @@ import ru.moex.papertrader.core.domain.Order;
 import ru.moex.papertrader.core.domain.OrderIdType;
 import ru.moex.papertrader.core.domain.OrderSearchCriteria;
 import ru.moex.papertrader.core.domain.PageResult;
+import ru.moex.papertrader.infra.services.OrderPlacementService;
 import ru.moex.papertrader.infra.services.OrderService;
 
 /** Заявки БКС: создание, отмена, статус и поиск (sync и async варианты). */
@@ -28,22 +29,27 @@ import ru.moex.papertrader.infra.services.OrderService;
 public class BksOrderController {
 
   private final OrderService orderService;
+  private final OrderPlacementService placementService;
   private final BksOrderMapper orderMapper;
 
-  public BksOrderController(OrderService orderService, BksOrderMapper orderMapper) {
+  public BksOrderController(
+      OrderService orderService,
+      OrderPlacementService placementService,
+      BksOrderMapper orderMapper) {
     this.orderService = orderService;
+    this.placementService = placementService;
     this.orderMapper = orderMapper;
   }
 
   @PostMapping("/orders")
   public ShortOrderResponse create(@RequestBody CreateOrderRequest request) {
-    Order order = orderService.place(orderMapper.toNewOrder(request));
+    Order order = placementService.place(orderMapper.toNewOrder(request));
     return orderMapper.toShortOrderResponse(order);
   }
 
   @PostMapping("/orders/sync")
   public OrderResponse createSync(@RequestBody CreateOrderRequest request) {
-    Order order = orderService.place(orderMapper.toNewOrder(request));
+    Order order = placementService.place(orderMapper.toNewOrder(request));
     return orderMapper.toOrderResponse(order);
   }
 

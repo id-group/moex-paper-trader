@@ -147,16 +147,29 @@ trade / read-only — как у БКС), обмен на access-токен (JWT-
 
 **ADR-9. Точная модель по спецификации владельца (упрощения запрещены):**
 - Маркет: кросс стакана (buy — ask, sell — bid) + проскальзывание:
-  случайные 0.05–0.15% в неблагоприятную сторону + тир по размеру относительно ADV:
-  <1% → +0.05%, 1–5% → +0.1%, >5% → +0.2%.
-- Ликвидность: ордер > 5% ADV (порог настраивается) → отклонение (`RESOURCE_EXHAUSTED`-подобная
-  ошибка контракта) либо разбивка на части — политика `LiquidityPolicy` настраивается на профиль.
+  случайные 0.05–0.15% в неблагоприятную сторону + тир по размеру ордера относительно ADV:
+  <1% → +0.05%, 1–5% → +0.1%, >5% → +0.2%. Тир считается по объёму прохода, а не по куску
+  стакана.
+- Ликвидность: ордер > 5% ADV (порог настраивается) → отклонение (`LiquidityExceededException`
+  → HTTP 429 `RESOURCE_EXHAUSTED`) либо разбивка на части — политика `LiquidityPolicy`
+  настраивается на профиль (`REJECT` по умолчанию / `SPLIT`).
 - Лимит: ожидание в очереди; исполнение, когда рынок пересекает лимит, по цене «лимит или
-  лучше» (buy: ask ≤ limit → цена min(limit, ask)); частичные исполнения ограничиваются
-  прошедшим объёмом; упрощение очереди (без позиции в очереди) — зафиксировано как допущение.
+  лучше» (buy: ask ≤ limit → цена ask); частичные исполнения ограничиваются доступным объёмом
+  стакана; упрощение очереди (без позиции в очереди) — зафиксировано как допущение.
+- FOK — all-or-nothing: при нехватке объёма заявка отклоняется без частичных сделок. GTD
+  снимается после `expiryDate` (или на закрытии этого дня), DAY — при закрытии сессии.
+- Маркет-остаток при нехватке объёма снимается (`CANCELED`), лимитный остаток остаётся активным.
+- Жизненный цикл `NEW → PARTIALLY_FILLED → FILLED / CANCELED / REJECTED`; переходы пишутся в
+  `order_events` (`CREATED`, `PARTIALLY_FILLED`, `FILLED`, `CANCELED`, `REJECTED`, `EXPIRED`).
+- `orderType` 3–5 контракта (алгоритмическая GTD, iceberg, условная) — заглушка
+  `NOT_IMPLEMENTED` с TODO; стоп-лоссы и WebSocket-нотификации вне скоупа.
 
-Интерфейсы `SlippageModel`, `LiquidityPolicy`, `MatchingEngine` — в `core/execution`,
-реализации по умолчанию там же; тесты покрывают тиры проскальзывания и сценарии лимиток.
+Интерфейсы `SlippageModel`, `LiquidityPolicy`, `MatchingEngine` — в `core/execution`, реализации
+по умолчанию там же (`SpecSlippageModel`, `AdvLiquidityPolicy`). `infra/services`:
+`ExecutionServiceImpl` (матчинг и жизненный цикл), `OrderPlacementService` (предпроверка ADV и
+немедленная попытка при постановке), `ExecutionScheduler` (фоновый проход, отключается
+`scheduler-enabled=false`). Seed REPLAY берётся из `marketdata.replay.seed`; STUB — из
+`execution.slippage.seed`; LIVE/RECORD — системный `SecureRandom`.
 
 ## 8. Портфель, комиссии, ГО (core/portfolio + core/commission)
 
@@ -177,16 +190,18 @@ trade / read-only — как у БКС), обмен на access-токен (JWT-
 core). Зависимость односторонняя: `infra → core`, контролируется ArchUnit.
 
 Схему создаёт и изменяет только Flyway (`src/main/resources/db/migration`; V1 — этап 3,
-V2 — таблицы рыночных данных этапа 4); `spring.jpa.hibernate.ddl-auto=validate` — Hibernate
-лишь сверяет сущности со схемой. Деньги — `NUMERIC(19,2)`, цены и средние цены —
-`NUMERIC(19,6)`, время — только `TIMESTAMP WITH TIME ZONE`.
+V2 — таблицы рыночных данных этапа 4, V3 — `expiry_date` и журнал `order_events` этапа 5);
+`spring.jpa.hibernate.ddl-auto=validate` — Hibernate лишь сверяет сущности со схемой. Деньги —
+`NUMERIC(19,2)`, цены и средние цены — `NUMERIC(19,6)`, время — только
+`TIMESTAMP WITH TIME ZONE`.
 
 | Таблица | Ключевые колонки и ограничения |
 |---|---|
 | `accounts` | `account_id VARCHAR(64) PK`, `created_at NOT NULL DEFAULT now()` |
 | `account_balances` | `id BIGSERIAL PK`, `account_id → accounts`, `currency VARCHAR(8)`, `cash/locked NUMERIC(19,2) NOT NULL DEFAULT 0`, `updated_at`; `UNIQUE (account_id, currency)` |
 | `instruments` | `id BIGSERIAL PK`, `ticker`, `class_code`, `type`, `short_name/display_name/isin`, `lot_size/minimum_step NUMERIC(19,6)`, `currency`; `UNIQUE (ticker, class_code)` |
-| `orders` | `order_id VARCHAR(64) PK`, `order_num BIGINT UNIQUE`, `client_order_id UUID UNIQUE`, `account_id → accounts`, `instrument_id → instruments`, `side/order_type/time_in_force/status`, `quantity BIGINT`, `price NUMERIC(19,6)`, `executed_quantity BIGINT`, `average_price NUMERIC(19,6)`, `created_at/updated_at` |
+| `orders` | `order_id VARCHAR(64) PK`, `order_num BIGINT UNIQUE`, `client_order_id UUID UNIQUE`, `account_id → accounts`, `instrument_id → instruments`, `side/order_type/time_in_force/status`, `quantity BIGINT`, `price NUMERIC(19,6)`, `expiry_date DATE NULL` (только GTD), `executed_quantity BIGINT`, `average_price NUMERIC(19,6)`, `created_at/updated_at` |
+| `order_events` | `id BIGSERIAL PK`, `order_id → orders`, `event_type VARCHAR(32)`, `previous_status/status VARCHAR(32)`, `quantity BIGINT`, `price NUMERIC(19,6)`, `reason VARCHAR(512)`, `occurred_at TIMESTAMPTZ`; индекс `(order_id, occurred_at, id)` |
 | `fills` | `id BIGSERIAL PK`, `order_id → orders`, `account_id → accounts`, `instrument_id → instruments`, `price NUMERIC(19,6)`, `quantity BIGINT`, `commission NUMERIC(19,2)`, `executed_at` |
 | `positions` | `id BIGSERIAL PK`, `account_id → accounts`, `instrument_id → instruments`, `quantity BIGINT` (short — отрицательное), `average_price NUMERIC(19,6)`, `updated_at`; `UNIQUE (account_id, instrument_id)`, `CHECK (quantity <> 0)`, `CHECK (average_price >= 0)` |
 | `nav_daily` | `id BIGSERIAL PK`, `account_id → accounts`, `nav_date DATE`, `as_of`, `cash/commission/variation_margin/market_value/nav NUMERIC(19,2)`, `holdings VARCHAR(4000) NOT NULL DEFAULT '[]'`; `UNIQUE (account_id, nav_date)` |
@@ -207,10 +222,9 @@ V2 — таблицы рыночных данных этапа 4); `spring.jpa.h
 - `nav_daily.holdings` — JSON-массив `NavSnapshot.Holding` (`VARCHAR(4000)`, по умолчанию
   `[]`); JSONB — открытый вопрос владельца.
 
-Отложено на следующие миграции: `order_events` (лог статусов), `strategy_tags`,
-`backtest_results`. Черновик `positions_daily` заменён таблицей `positions` (текущее
-состояние). Индексы на внешних ключах и на `fills.executed_at` / `orders.status` не созданы —
-открытый вопрос владельца.
+Отложено на следующие миграции: `strategy_tags`, `backtest_results`. Черновик
+`positions_daily` заменён таблицей `positions` (текущее состояние). Индексы на внешних ключах и
+на `fills.executed_at` / `orders.status` не созданы — открытый вопрос владельца.
 
 
 ## 10. Отчётность (core/reporting)
@@ -228,9 +242,11 @@ V2 — таблицы рыночных данных этапа 4); `spring.jpa.h
 
 Единый `application.yml` + переменные окружения для секретов. Ключи (префикс `emulator.`):
 `marketdata.mode` (STUB/LIVE/RECORD/REPLAY), `replay.*` (начало таймлайна, скорость, seed),
-`marketdata.retention-days` (хранение записи RECORD), `algoapi.*` (base-url, таймауты, ретраи;
-токен — только env), `iss.*` (base-url, таймауты, ретраи, режим/рынок/борда),
-`brokers.bks.*` (тариф комиссий, пороги ликвидности, ГО, rate-limit), `db.*`.
+`marketdata.retention-days` (хранение записи RECORD), `execution.*` (планировщик, глубина
+стакана, политика ликвидности и порог ADV, seed и базовая доля проскальзывания),
+`algoapi.*` (base-url, таймауты, ретраи; токен — только env), `iss.*` (base-url, таймауты,
+ретраи, режим/рынок/борда), `brokers.bks.*` (тариф комиссий, пороги ликвидности, ГО, rate-limit),
+`db.*`.
 Профили Spring: `live`, `replay`, `test` (Testcontainers PostgreSQL — решить на этапе 3).
 Мониторинг — Spring Boot Actuator (набор эндпоинтов и путь монтирования — на этапе 2).
 

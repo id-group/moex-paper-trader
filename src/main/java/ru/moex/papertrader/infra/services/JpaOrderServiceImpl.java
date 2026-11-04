@@ -18,7 +18,10 @@ import ru.moex.papertrader.core.domain.NewOrder;
 import ru.moex.papertrader.core.domain.Order;
 import ru.moex.papertrader.core.domain.OrderIdType;
 import ru.moex.papertrader.core.domain.OrderSearchCriteria;
+import ru.moex.papertrader.core.domain.OrderStatus;
 import ru.moex.papertrader.core.domain.PageResult;
+import ru.moex.papertrader.core.execution.OrderEvent;
+import ru.moex.papertrader.core.execution.OrderEventType;
 import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.MarketDataProvider;
 import ru.moex.papertrader.infra.mapper.InstrumentMapper;
@@ -50,6 +53,7 @@ public class JpaOrderServiceImpl implements OrderService {
   private final InstrumentRepository instruments;
   private final OrderMapper orderMapper;
   private final InstrumentMapper instrumentMapper;
+  private final OrderEventRecorder eventRecorder;
 
   public JpaOrderServiceImpl(
       Clock clock,
@@ -59,7 +63,8 @@ public class JpaOrderServiceImpl implements OrderService {
       OrderRepository orders,
       InstrumentRepository instruments,
       OrderMapper orderMapper,
-      InstrumentMapper instrumentMapper) {
+      InstrumentMapper instrumentMapper,
+      OrderEventRecorder eventRecorder) {
     this.clock = clock;
     this.marketDataProvider = marketDataProvider;
     this.portfolioProperties = portfolioProperties;
@@ -68,6 +73,7 @@ public class JpaOrderServiceImpl implements OrderService {
     this.instruments = instruments;
     this.orderMapper = orderMapper;
     this.instrumentMapper = instrumentMapper;
+    this.eventRecorder = eventRecorder;
   }
 
   @Override
@@ -113,6 +119,7 @@ public class JpaOrderServiceImpl implements OrderService {
           "Заявка с clientOrderId " + request.clientOrderId() + " уже существует");
     }
     log.debug("Заявка {} сохранена, номер {}", order.orderId(), orderNum);
+    eventRecorder.record(createdEvent(order));
     return order;
   }
 
@@ -125,13 +132,81 @@ public class JpaOrderServiceImpl implements OrderService {
   @Override
   @Transactional
   public Order cancel(OrderIdType idType, String orderId) {
+    return cancel(idType, orderId, null);
+  }
+
+  @Override
+  @Transactional
+  public Order cancel(OrderIdType idType, String orderId, String reason) {
     String accountId = portfolioProperties.account();
     accountService.lockAccount(accountId);
     OrderEntity entity = resolveEntity(idType, orderId);
     Order order = orderMapper.toDomain(entity, instrument(entity.getInstrumentId()));
+    long remaining = order.quantity() - order.executedQuantity();
+    OrderStatus previousStatus = order.status();
     order.cancel(clock.instant());
     orders.saveAndFlush(orderMapper.toEntity(order, accountId, entity.getInstrumentId()));
+    eventRecorder.record(
+        new OrderEvent(
+            order.orderId(),
+            OrderEventType.CANCELED,
+            previousStatus,
+            order.status(),
+            remaining,
+            order.price(),
+            reason,
+            order.updatedAt()));
     log.debug("Заявка {} отменена", order.orderId());
+    return order;
+  }
+
+  @Override
+  @Transactional
+  public Order reject(OrderIdType idType, String orderId, String reason) {
+    String accountId = portfolioProperties.account();
+    accountService.lockAccount(accountId);
+    OrderEntity entity = resolveEntity(idType, orderId);
+    Order order = orderMapper.toDomain(entity, instrument(entity.getInstrumentId()));
+    long remaining = order.quantity() - order.executedQuantity();
+    OrderStatus previousStatus = order.status();
+    order.reject(clock.instant());
+    orders.saveAndFlush(orderMapper.toEntity(order, accountId, entity.getInstrumentId()));
+    eventRecorder.record(
+        new OrderEvent(
+            order.orderId(),
+            OrderEventType.REJECTED,
+            previousStatus,
+            order.status(),
+            remaining,
+            order.price(),
+            reason,
+            order.updatedAt()));
+    log.debug("Заявка {} отклонена: {}", order.orderId(), reason);
+    return order;
+  }
+
+  @Override
+  @Transactional
+  public Order expire(OrderIdType idType, String orderId) {
+    String accountId = portfolioProperties.account();
+    accountService.lockAccount(accountId);
+    OrderEntity entity = resolveEntity(idType, orderId);
+    Order order = orderMapper.toDomain(entity, instrument(entity.getInstrumentId()));
+    long remaining = order.quantity() - order.executedQuantity();
+    OrderStatus previousStatus = order.status();
+    order.cancel(clock.instant());
+    orders.saveAndFlush(orderMapper.toEntity(order, accountId, entity.getInstrumentId()));
+    eventRecorder.record(
+        new OrderEvent(
+            order.orderId(),
+            OrderEventType.EXPIRED,
+            previousStatus,
+            order.status(),
+            remaining,
+            order.price(),
+            "Срок действия заявки истёк",
+            order.updatedAt()));
+    log.debug("Заявка {} снята по истечении срока действия", order.orderId());
     return order;
   }
 
@@ -248,5 +323,17 @@ public class JpaOrderServiceImpl implements OrderService {
 
   private Order toDomain(OrderEntity entity) {
     return orderMapper.toDomain(entity, instrument(entity.getInstrumentId()));
+  }
+
+  private static OrderEvent createdEvent(Order order) {
+    return new OrderEvent(
+        order.orderId(),
+        OrderEventType.CREATED,
+        null,
+        order.status(),
+        order.quantity(),
+        order.price(),
+        null,
+        order.createdAt());
   }
 }
