@@ -8,6 +8,22 @@
       }
     }
   },
+  "agents": {
+    "precommit-checker": {
+      "description": "Runs Gradle pre-commit quality gates and returns a compact result",
+      "mode": "subagent",
+      "model": "opencode-go/qwen3.8-flash",
+      "steps": 8,
+      "system": "Run only the requested pre-commit checks. Do not edit files, auto-format, fix failures, commit, or run unrelated scans. First run: echo $env:MOEX_JAVA25_HOME — if it is empty, stop and report BLOCKED without running Gradle. Then run the checks sequentially, each as one command with no pipes or output redirection (only gradlew and env assignments are permitted): (1) $env:JAVA_HOME=$env:MOEX_JAVA25_HOME; .\\gradlew.bat spotlessCheck (2) $env:JAVA_HOME=$env:MOEX_JAVA25_HOME; .\\gradlew.bat test jacocoTestCoverageVerification. The shell tool truncates and stores large output automatically; inspect task outcomes, failure summaries, failed test names, and coverage violations from it. Return a compact report with PASS/FAIL/BLOCKED per check, elapsed time, and only enough failure detail for the parent agent to continue. Never claim a check passed unless its process exit code is zero. The parent agent owns diagnosis and fixes.",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "echo *", "effect": "allow" },
+        { "action": "shell", "resource": "$env:JAVA_HOME=*", "effect": "allow" },
+        { "action": "shell", "resource": "*gradlew*", "effect": "allow" }
+      ]
+    }
+  },
   "permissions": [
     { "action": "edit", "resource": "build.gradle", "effect": "ask" },
     { "action": "edit", "resource": "settings.gradle", "effect": "ask" },
