@@ -14,6 +14,7 @@ class FillMapperTest {
   private static final String ORDER_ID = "ORD-1";
   private static final String ACCOUNT = "PAPER-0001";
   private static final Long INSTRUMENT_ID = 42L;
+  private static final BigDecimal REFERENCE_PRICE = new BigDecimal("123.400000");
 
   private final FillMapper mapper = new FillMapperImpl();
 
@@ -21,13 +22,15 @@ class FillMapperTest {
   void mapsFillToEntityWithSchemaScalesAndInfraReferences() {
     Fill fill = new Fill(new BigDecimal("123.456789"), 10, new BigDecimal("1.50"), EXECUTED_AT);
 
-    FillEntity entity = mapper.toEntity(fill, ORDER_ID, ACCOUNT, INSTRUMENT_ID);
+    FillEntity entity = mapper.toEntity(fill, ORDER_ID, ACCOUNT, INSTRUMENT_ID, REFERENCE_PRICE);
 
     assertThat(entity.getOrderId()).isEqualTo(ORDER_ID);
     assertThat(entity.getAccountId()).isEqualTo(ACCOUNT);
     assertThat(entity.getInstrumentId()).isEqualTo(INSTRUMENT_ID);
     assertThat(entity.getPrice()).isEqualByComparingTo("123.456789");
     assertThat(entity.getPrice().scale()).isEqualTo(6);
+    assertThat(entity.getReferencePrice()).isEqualByComparingTo("123.400000");
+    assertThat(entity.getReferencePrice().scale()).isEqualTo(6);
     assertThat(entity.getQuantity()).isEqualTo(10);
     assertThat(entity.getCommission()).isEqualByComparingTo("1.50");
     assertThat(entity.getCommission().scale()).isEqualTo(2);
@@ -38,7 +41,7 @@ class FillMapperTest {
   void roundsCommissionToMoneyScale() {
     Fill fill = new Fill(new BigDecimal("100.000000"), 1, new BigDecimal("1.234"), EXECUTED_AT);
 
-    FillEntity entity = mapper.toEntity(fill, ORDER_ID, ACCOUNT, INSTRUMENT_ID);
+    FillEntity entity = mapper.toEntity(fill, ORDER_ID, ACCOUNT, INSTRUMENT_ID, REFERENCE_PRICE);
 
     assertThat(entity.getCommission()).isEqualByComparingTo("1.23");
     assertThat(entity.getCommission().scale()).isEqualTo(2);
@@ -52,6 +55,7 @@ class FillMapperTest {
             ACCOUNT,
             INSTRUMENT_ID,
             new BigDecimal("123.456789"),
+            REFERENCE_PRICE,
             10,
             new BigDecimal("1.50"),
             EXECUTED_AT);
@@ -68,7 +72,9 @@ class FillMapperTest {
   void roundTripsDomainToEntityToDomain() {
     Fill original = new Fill(new BigDecimal("123.456789"), 10, new BigDecimal("1.50"), EXECUTED_AT);
 
-    Fill restored = mapper.toDomain(mapper.toEntity(original, ORDER_ID, ACCOUNT, INSTRUMENT_ID));
+    Fill restored =
+        mapper.toDomain(
+            mapper.toEntity(original, ORDER_ID, ACCOUNT, INSTRUMENT_ID, REFERENCE_PRICE));
 
     assertThat(restored).isEqualTo(original);
   }
@@ -81,12 +87,14 @@ class FillMapperTest {
             ACCOUNT,
             INSTRUMENT_ID,
             new BigDecimal("123.456789"),
+            REFERENCE_PRICE,
             10,
             new BigDecimal("1.50"),
             EXECUTED_AT);
 
     FillEntity restored =
-        mapper.toEntity(mapper.toDomain(original), ORDER_ID, ACCOUNT, INSTRUMENT_ID);
+        mapper.toEntity(
+            mapper.toDomain(original), ORDER_ID, ACCOUNT, INSTRUMENT_ID, REFERENCE_PRICE);
 
     assertThat(restored.getOrderId()).isEqualTo(original.getOrderId());
     assertThat(restored.getAccountId()).isEqualTo(original.getAccountId());

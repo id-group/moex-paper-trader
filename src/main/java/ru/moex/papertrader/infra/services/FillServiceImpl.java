@@ -133,6 +133,26 @@ public class FillServiceImpl implements FillService {
   @Override
   @Transactional
   public Order fill(OrderIdType idType, String orderId, long quantity, BigDecimal price) {
+    return fill(idType, orderId, quantity, price, price);
+  }
+
+  @Override
+  @Transactional
+  public Order fill(
+      OrderIdType idType,
+      String orderId,
+      long quantity,
+      BigDecimal price,
+      BigDecimal referencePrice) {
+    return fillInternal(idType, orderId, quantity, price, referencePrice);
+  }
+
+  private Order fillInternal(
+      OrderIdType idType,
+      String orderId,
+      long quantity,
+      BigDecimal price,
+      BigDecimal referencePrice) {
     String accountId = properties.account();
     accountService.lockAccount(accountId);
     Order order = orderService.get(idType, orderId);
@@ -153,6 +173,10 @@ public class FillServiceImpl implements FillService {
     BigDecimal effectivePrice = price == null ? lastPrice(instrument) : price;
     if (effectivePrice == null || effectivePrice.signum() <= 0) {
       throw new InvalidOrderException("price должен быть положительным");
+    }
+    BigDecimal effectiveReferencePrice = referencePrice == null ? effectivePrice : referencePrice;
+    if (effectiveReferencePrice.signum() <= 0) {
+      throw new InvalidOrderException("referencePrice должен быть положительным");
     }
     BigDecimal commission =
         COMMISSION_CALCULATOR.calculate(type, instrument.ticker(), effectivePrice, quantity);
@@ -177,7 +201,7 @@ public class FillServiceImpl implements FillService {
     OrderStatus previousStatus = order.status();
     order.applyFill(fill);
 
-    persist(accountId, order, instrument, fill, portfolio, now);
+    persist(accountId, order, instrument, fill, effectiveReferencePrice, portfolio, now);
     eventRecorder.record(
         new OrderEvent(
             order.orderId(),
@@ -208,9 +232,12 @@ public class FillServiceImpl implements FillService {
       throw new InvalidOrderException("Список сделок не может быть пустым");
     }
     Order result = null;
-    // Самовызов fill() остаётся внутри транзакции fillAll: любая ошибка откатывает весь набор.
+    // Самовызов fillInternal() остаётся внутри транзакции fillAll: любая ошибка откатывает весь
+    // набор.
     for (MatchFill matchFill : fills) {
-      result = fill(idType, orderId, matchFill.quantity(), matchFill.price());
+      result =
+          fillInternal(
+              idType, orderId, matchFill.quantity(), matchFill.price(), matchFill.referencePrice());
     }
     return result;
   }
@@ -379,6 +406,7 @@ public class FillServiceImpl implements FillService {
       Order order,
       Instrument instrument,
       Fill fill,
+      BigDecimal referencePrice,
       VirtualPortfolio portfolio,
       Instant now) {
     Long instrumentId =
@@ -395,7 +423,7 @@ public class FillServiceImpl implements FillService {
                             + " не найден"));
 
     orders.saveAndFlush(orderMapper.toEntity(order, accountId, instrumentId));
-    fills.save(fillMapper.toEntity(fill, order.orderId(), accountId, instrumentId));
+    fills.save(fillMapper.toEntity(fill, order.orderId(), accountId, instrumentId, referencePrice));
     savePosition(accountId, instrumentId, instrument, portfolio, now);
     saveBalances(accountId, portfolio, now);
   }

@@ -190,7 +190,8 @@ trade / read-only — как у БКС), обмен на access-токен (JWT-
 core). Зависимость односторонняя: `infra → core`, контролируется ArchUnit.
 
 Схему создаёт и изменяет только Flyway (`src/main/resources/db/migration`; V1 — этап 3,
-V2 — таблицы рыночных данных этапа 4, V3 — `expiry_date` и журнал `order_events` этапа 5);
+V2 — таблицы рыночных данных этапа 4, V3 — `expiry_date` и журнал `order_events` этапа 5,
+V4 — `strategy_id`, `reference_price`, `reports` и `backtest_results` этапа 6);
 `spring.jpa.hibernate.ddl-auto=validate` — Hibernate лишь сверяет сущности со схемой. Деньги —
 `NUMERIC(19,2)`, цены и средние цены — `NUMERIC(19,6)`, время — только
 `TIMESTAMP WITH TIME ZONE`.
@@ -207,6 +208,8 @@ V2 — таблицы рыночных данных этапа 4, V3 — `expiry
 | `nav_daily` | `id BIGSERIAL PK`, `account_id → accounts`, `nav_date DATE`, `as_of`, `cash/commission/variation_margin/market_value/nav NUMERIC(19,2)`, `holdings VARCHAR(4000) NOT NULL DEFAULT '[]'`; `UNIQUE (account_id, nav_date)` |
 | `market_data_snapshots` | `id BIGSERIAL PK`, `ts TIMESTAMPTZ NOT NULL`, `kind VARCHAR(16)` (QUOTE/ORDER_BOOK/TRADE), `ticker VARCHAR(32)`, `class_code VARCHAR(8)`, `payload JSONB NOT NULL`; индекс `(ticker, class_code, ts)` — таймлайн REPLAY |
 | `trading_calendar` | `id BIGSERIAL PK`, `engine/market/board VARCHAR(16)`, `trade_date DATE`, `is_trading BOOLEAN`, `open_utc/close_utc TIMESTAMPTZ NULL`; `UNIQUE (engine, market, board, trade_date)` |
+| `reports` | `id BIGSERIAL PK`, `account_id → accounts`, `label VARCHAR(128)`, `period_from/period_to DATE`, `generated_at TIMESTAMPTZ`, `payload JSONB` — канонический `ReportPayload`; `CHECK (period_to >= period_from)` |
+| `backtest_results` | `id BIGSERIAL PK`, `report_id → reports NULL`, `account_id → accounts`, `label`, `threshold NUMERIC(9,6)`, `passed BOOLEAN`, `compared_at TIMESTAMPTZ`, `payload JSONB` — вход и отклонения |
 
 Стратегия записи:
 
@@ -222,21 +225,29 @@ V2 — таблицы рыночных данных этапа 4, V3 — `expiry
 - `nav_daily.holdings` — JSON-массив `NavSnapshot.Holding` (`VARCHAR(4000)`, по умолчанию
   `[]`); JSONB — открытый вопрос владельца.
 
-Отложено на следующие миграции: `strategy_tags`, `backtest_results`. Черновик
-`positions_daily` заменён таблицей `positions` (текущее состояние). Индексы на внешних ключах и
-на `fills.executed_at` / `orders.status` не созданы — открытый вопрос владельца.
+`backtest_results` создана миграцией V4 этапа 6; `strategy_tags` остаётся отложенной (метка
+`orders.strategy_id` покрывает потребность отчётности). Индексы `orders (account_id, strategy_id)`
+и `fills (account_id, executed_at)` добавлены той же миграцией; индекс на `orders.status` остаётся
+открытым вопросом владельца. Черновик `positions_daily` заменён таблицей `positions` (текущее
+состояние).
 
 
 ## 10. Отчётность (core/reporting)
 
-- Метрики из кривой NAV: CAGR, Sharpe, Sortino, Max Drawdown, Calmar; WinRate — по закрытым
-  сделкам (сопоставление FIFO — соглашение).
-- Журнал сделок: цена до/после проскальзывания, комиссия, strategyId.
-- Сравнение с бэктестом: вход — метрики/ряд NAV внешнего бэктеста (JSON), выход — таблица
-  отклонений; порог 30% проверяется интеграционным тестом (этап 7).
-- Разбивка по стратегиям — по `strategyId` ордеров (роутер передаёт метку; поле прокидывается
-  через контракт как расширение — согласовать формат передачи с владельцем: заголовок
-  `X-Strategy-Id` — допущение по умолчанию).
+- Метрики из кривой NAV: CAGR, Sharpe, Sortino, Max Drawdown, Calmar (252 торговых дня,
+  безрисковая ставка — конфиг, по умолчанию 16%); WinRate — по закрытым FIFO-парам, комиссии
+  вычитаются из результата. Неопределённые значения — `null`, а не `0`.
+- Журнал сделок: опорная цена стакана и фактическая цена после проскальзывания раздельно,
+  комиссия отдельным полем, `strategyId` из заголовка `X-Strategy-Id` (расширение контракта БКС;
+  поле `orders.strategy_id`), выгрузка JSON/CSV.
+- Сравнение с бэктестом: вход — метрики или ряд NAV внешнего бэктеста (JSON, контракт —
+  `docs/reporting.md`), выход — таблица отклонений (абс. и %), флаг PASS/FAIL по порогу 30%.
+- Разбивка по стратегиям — реализованный PnL, число сделок, число закрытых пар и win rate.
+- Хранение: `reports`, `backtest_results`; экспорт в `emulator.reporting.output-dir`.
+- Внутренний API `/api/internal/reports/**` — брокер-нейтральный пакет `reporting/api`, без токена
+  БКС; ошибки отчётов обрабатывает `InternalReportExceptionHandler` (пакет `reporting/api`,
+  высший приоритет), `BksExceptionHandler` остаётся глобальным — формат ошибок неизвестных путей
+  БКС сохранён.
 
 ## 11. Конфигурация
 
@@ -244,6 +255,7 @@ V2 — таблицы рыночных данных этапа 4, V3 — `expiry
 `marketdata.mode` (STUB/LIVE/RECORD/REPLAY), `replay.*` (начало таймлайна, скорость, seed),
 `marketdata.retention-days` (хранение записи RECORD), `execution.*` (планировщик, глубина
 стакана, политика ликвидности и порог ADV, seed и базовая доля проскальзывания),
+`reporting.*` (безрисковая ставка, порог сверки с бэктестом, каталог экспорта),
 `algoapi.*` (base-url, таймауты, ретраи; токен — только env), `iss.*` (base-url, таймауты,
 ретраи, режим/рынок/борда), `brokers.bks.*` (тариф комиссий, пороги ликвидности, ГО, rate-limit),
 `db.*`.

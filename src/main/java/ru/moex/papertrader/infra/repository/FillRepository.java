@@ -14,6 +14,12 @@ public interface FillRepository extends JpaRepository<FillEntity, Long> {
   List<FillEntity> findByOrderId(String orderId);
 
   /**
+   * Сделки счёта в хронологическом порядке — вход журнала сделок и FIFO-сопоставления этапа 6.
+   * Порядок по {@code (executedAt, id)}, чтобы несколько сделок одной заявки не зависели от БД.
+   */
+  List<FillEntity> findByAccountIdOrderByExecutedAtAscIdAsc(String accountId);
+
+  /**
    * Сумма комиссий счёта за полуинтервал времени {@code [from, to)}; {@code null}, если сделок нет.
    * Нужна компоненте комиссии дня NAV-среза.
    */

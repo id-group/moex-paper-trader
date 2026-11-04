@@ -37,6 +37,7 @@ public class OrderMapper {
         MappingScales.price(order.price()),
         order.expiryDate(),
         order.clientCode(),
+        order.strategyId(),
         order.createdAt(),
         order.updatedAt(),
         order.status(),
@@ -63,7 +64,8 @@ public class OrderMapper {
         entity.getStatus(),
         entity.getExecutedQuantity(),
         normalizePrice(entity.getAveragePrice()),
-        entity.getExpiryDate());
+        entity.getExpiryDate(),
+        entity.getStrategyId());
   }
 
   /**

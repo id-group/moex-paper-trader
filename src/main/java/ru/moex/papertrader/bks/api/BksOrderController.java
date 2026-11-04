@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,14 +43,18 @@ public class BksOrderController {
   }
 
   @PostMapping("/orders")
-  public ShortOrderResponse create(@RequestBody CreateOrderRequest request) {
-    Order order = placementService.place(orderMapper.toNewOrder(request));
+  public ShortOrderResponse create(
+      @RequestBody CreateOrderRequest request,
+      @RequestHeader(name = "X-Strategy-Id", required = false) String strategyId) {
+    Order order = placementService.place(orderMapper.toNewOrder(request, strategyId));
     return orderMapper.toShortOrderResponse(order);
   }
 
   @PostMapping("/orders/sync")
-  public OrderResponse createSync(@RequestBody CreateOrderRequest request) {
-    Order order = placementService.place(orderMapper.toNewOrder(request));
+  public OrderResponse createSync(
+      @RequestBody CreateOrderRequest request,
+      @RequestHeader(name = "X-Strategy-Id", required = false) String strategyId) {
+    Order order = placementService.place(orderMapper.toNewOrder(request, strategyId));
     return orderMapper.toOrderResponse(order);
   }
 

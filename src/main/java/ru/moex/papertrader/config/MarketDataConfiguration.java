@@ -49,6 +49,12 @@ import ru.moex.papertrader.infra.services.StubMarketDataProvider;
 @EnableScheduling
 public class MarketDataConfiguration {
 
+  /**
+   * Верхняя граница загрузки таймлайна REPLAY. {@link Instant#MAX} нельзя передать в PostgreSQL:
+   * Hibernate конвертирует его в {@code java.sql.Timestamp} и переполняет {@code long}.
+   */
+  private static final Instant REPLAY_TIMELINE_END = Instant.parse("9999-12-31T23:59:59Z");
+
   @Bean
   public MarketDataProvider marketDataProvider(
       @Value("${emulator.marketdata.mode:STUB}") String mode,
@@ -107,7 +113,7 @@ public class MarketDataConfiguration {
       throw new IllegalStateException("В режиме REPLAY порт Clock должен быть VirtualClock");
     }
     Instant from = replay.start() != null ? replay.start() : Instant.EPOCH;
-    List<MarketDataSnapshot> timeline = store.loadAll(from, Instant.MAX);
+    List<MarketDataSnapshot> timeline = store.loadAll(from, REPLAY_TIMELINE_END);
     Map<String, Instrument> instruments =
         instrumentsOf(timeline, instrumentRepository, instrumentMapper);
     Instant calendarTo = timeline.isEmpty() ? virtualClock.instant() : timelineLast(timeline);

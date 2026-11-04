@@ -23,10 +23,12 @@ public interface FillMapper {
   @Mapping(target = "accountId", source = "accountId")
   @Mapping(target = "instrumentId", source = "instrumentId")
   @Mapping(target = "price", source = "fill.price", qualifiedByName = "priceScale")
+  @Mapping(target = "referencePrice", source = "referencePrice", qualifiedByName = "priceScale")
   @Mapping(target = "quantity", source = "fill.quantity")
   @Mapping(target = "commission", source = "fill.commission", qualifiedByName = "moneyScale")
   @Mapping(target = "executedAt", source = "fill.executedAt")
-  FillEntity toEntity(Fill fill, String orderId, String accountId, Long instrumentId);
+  FillEntity toEntity(
+      Fill fill, String orderId, String accountId, Long instrumentId, BigDecimal referencePrice);
 
   /** Восстанавливает доменную сделку; ссылки на заявку/счёт/инструмент не нужны. */
   Fill toDomain(FillEntity entity);

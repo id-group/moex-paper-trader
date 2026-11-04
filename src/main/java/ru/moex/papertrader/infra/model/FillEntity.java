@@ -33,6 +33,13 @@ public class FillEntity {
   @Column(name = "price", nullable = false, precision = 19, scale = 6)
   private BigDecimal price;
 
+  /**
+   * Опорная цена стакана до проскальзывания. {@code null} у сделок, записанных до этапа 6: журнал
+   * считает проскальзывание нулевым и подставляет цену сделки.
+   */
+  @Column(name = "reference_price", precision = 19, scale = 6)
+  private BigDecimal referencePrice;
+
   @Column(name = "quantity", nullable = false)
   private long quantity;
 
@@ -50,6 +57,7 @@ public class FillEntity {
       String accountId,
       Long instrumentId,
       BigDecimal price,
+      BigDecimal referencePrice,
       long quantity,
       BigDecimal commission,
       Instant executedAt) {
@@ -57,6 +65,7 @@ public class FillEntity {
     this.accountId = accountId;
     this.instrumentId = instrumentId;
     this.price = price;
+    this.referencePrice = referencePrice;
     this.quantity = quantity;
     this.commission = commission;
     this.executedAt = executedAt;
@@ -80,6 +89,10 @@ public class FillEntity {
 
   public BigDecimal getPrice() {
     return price;
+  }
+
+  public BigDecimal getReferencePrice() {
+    return referencePrice;
   }
 
   public long getQuantity() {

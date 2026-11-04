@@ -39,6 +39,7 @@ public final class Order {
   private final BigDecimal price;
   private final LocalDate expiryDate;
   private final String clientCode;
+  private final String strategyId;
   private final Instant createdAt;
 
   private Instant updatedAt;
@@ -58,6 +59,7 @@ public final class Order {
       BigDecimal price,
       LocalDate expiryDate,
       String clientCode,
+      String strategyId,
       Instant createdAt) {
     this.orderNum = orderNum;
     this.clientOrderId = clientOrderId;
@@ -70,6 +72,7 @@ public final class Order {
     this.price = price;
     this.expiryDate = expiryDate;
     this.clientCode = clientCode;
+    this.strategyId = strategyId;
     this.createdAt = createdAt;
     this.updatedAt = createdAt;
     this.status = OrderStatus.NEW;
@@ -139,6 +142,7 @@ public final class Order {
         effectivePrice,
         expiryDate,
         clientCode,
+        request.strategyId(),
         now);
   }
 
@@ -166,7 +170,8 @@ public final class Order {
       OrderStatus status,
       long executedQuantity,
       BigDecimal averagePrice,
-      LocalDate expiryDate) {
+      LocalDate expiryDate,
+      String strategyId) {
     Objects.requireNonNull(clientOrderId, "clientOrderId");
     Objects.requireNonNull(orderId, "orderId");
     Objects.requireNonNull(instrument, "instrument");
@@ -238,12 +243,51 @@ public final class Order {
             price,
             expiryDate,
             clientCode,
+            strategyId,
             createdAt);
     order.updatedAt = updatedAt;
     order.status = status;
     order.executedQuantity = executedQuantity;
     order.averagePrice = averagePrice;
     return order;
+  }
+
+  /** Восстановление без метки стратегии — для сохранённых заявок до этапа 6. */
+  public static Order restore(
+      long orderNum,
+      UUID clientOrderId,
+      String orderId,
+      Instrument instrument,
+      Side side,
+      OrderType orderType,
+      TimeInForce timeInForce,
+      long quantity,
+      BigDecimal price,
+      String clientCode,
+      Instant createdAt,
+      Instant updatedAt,
+      OrderStatus status,
+      long executedQuantity,
+      BigDecimal averagePrice,
+      LocalDate expiryDate) {
+    return restore(
+        orderNum,
+        clientOrderId,
+        orderId,
+        instrument,
+        side,
+        orderType,
+        timeInForce,
+        quantity,
+        price,
+        clientCode,
+        createdAt,
+        updatedAt,
+        status,
+        executedQuantity,
+        averagePrice,
+        expiryDate,
+        null);
   }
 
   /**
@@ -358,6 +402,11 @@ public final class Order {
 
   public String clientCode() {
     return clientCode;
+  }
+
+  /** Метка стратегии роутера для отчётности; {@code null} — заявка без метки. */
+  public String strategyId() {
+    return strategyId;
   }
 
   public Instant createdAt() {

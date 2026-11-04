@@ -61,6 +61,10 @@ public class OrderEntity {
   @Column(name = "client_code", length = 64)
   private String clientCode;
 
+  /** Метка стратегии роутера (расширение этапа 6); {@code null} — без метки. */
+  @Column(name = "strategy_id", length = 64)
+  private String strategyId;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
@@ -110,6 +114,7 @@ public class OrderEntity {
         price,
         null,
         clientCode,
+        null,
         createdAt,
         updatedAt,
         status,
@@ -135,6 +140,46 @@ public class OrderEntity {
       OrderStatus status,
       long executedQuantity,
       BigDecimal averagePrice) {
+    this(
+        orderId,
+        orderNum,
+        clientOrderId,
+        accountId,
+        instrumentId,
+        side,
+        orderType,
+        timeInForce,
+        quantity,
+        price,
+        expiryDate,
+        clientCode,
+        null,
+        createdAt,
+        updatedAt,
+        status,
+        executedQuantity,
+        averagePrice);
+  }
+
+  public OrderEntity(
+      String orderId,
+      long orderNum,
+      UUID clientOrderId,
+      String accountId,
+      Long instrumentId,
+      Side side,
+      OrderType orderType,
+      TimeInForce timeInForce,
+      long quantity,
+      BigDecimal price,
+      LocalDate expiryDate,
+      String clientCode,
+      String strategyId,
+      Instant createdAt,
+      Instant updatedAt,
+      OrderStatus status,
+      long executedQuantity,
+      BigDecimal averagePrice) {
     this.orderId = orderId;
     this.orderNum = orderNum;
     this.clientOrderId = clientOrderId;
@@ -147,6 +192,7 @@ public class OrderEntity {
     this.price = price;
     this.expiryDate = expiryDate;
     this.clientCode = clientCode;
+    this.strategyId = strategyId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
     this.status = status;
@@ -200,6 +246,10 @@ public class OrderEntity {
 
   public String getClientCode() {
     return clientCode;
+  }
+
+  public String getStrategyId() {
+    return strategyId;
   }
 
   public Instant getCreatedAt() {

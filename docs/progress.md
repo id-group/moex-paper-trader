@@ -25,6 +25,28 @@
   OpenCode (`opencode service set env ...`), сервис перезапущен; `.\gradlew.bat --version`
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.
 
+- **Этап 6 завершён — отчётность и метрики** (2026-11-04; ветка
+  `feature/stage-6-reporting`, коммит ожидает подтверждения владельца). Отчёт:
+  `docs/agent-briefs/stage-6-report.md`, формулы и контракты — `docs/reporting.md`.
+  - `core/reporting`: `MetricsCalculator` (CAGR, Sharpe, Sortino, Max Drawdown, Calmar по
+    дневному NAV, 252 торговых дня), `TradeJournal` + `FifoMatcher` (win rate, частичные
+    закрытия, короткие позиции, комиссии в PnL), `BacktestComparator` (порог 30%).
+  - `strategyId`: заголовок `X-Strategy-Id` (расширение контракта БКС), `orders.strategy_id`;
+    `fills.reference_price` — цена стакана до проскальзывания.
+  - Миграция `V4__reporting.sql`: `reports` и `backtest_results` (payload JSONB), индексы
+    `orders(account_id, strategy_id)` и `fills(account_id, executed_at)`.
+  - `infra/services`: `ReportServiceImpl` — сборка отчёта из NAV/сделок/заявок, файловый
+    экспорт JSON/CSV, необязательная сверка с бэктестом; `ReportProperties`.
+  - `reporting/api`: внутренний брокер-нейтральный API `/api/internal/reports/**` без токена
+    БКС; ошибки внутреннего API обрабатывает `InternalReportExceptionHandler` с высшим
+    приоритетом, `BksExceptionHandler` остаётся глобальным.
+  - Проверка: `./gradlew clean build` зелёный; `./gradlew test --rerun-tasks` — 673 теста,
+    89 сюит, 0 падений/ошибок/пропусков; JaCoCo bundle 92.9% инструкций / 76.8% ветвей,
+    `core.reporting` — 95.3% / 77.5%; REPLAY-сценарий — `ReplayReportIntegrationIT`.
+  - Решения: `X-Strategy-Id` как расширение контракта; безрисковая ставка 16% конфигом;
+    неопределённые метрики — `null`; период журнала — дни UTC; внутренний API без
+    аутентификации (временные решения №24–28).
+
 - **Этап 5 завершён — модель исполнения ордеров** (2026-11-04; коммит `544adfe`,
   ветка `feature/stage-5-execution`). Отчёт: `docs/agent-briefs/stage-5-report.md`.
   - `core/execution`: `MatchingEngine`, `SpecSlippageModel` (база 0.05–0.15 % + тиры ADV),

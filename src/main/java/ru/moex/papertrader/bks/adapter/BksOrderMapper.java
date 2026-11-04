@@ -40,6 +40,14 @@ public class BksOrderMapper {
   private static final String SECURITY_EXCHANGE = "MOEX";
 
   public NewOrder toNewOrder(CreateOrderRequest request) {
+    return toNewOrder(request, null);
+  }
+
+  /**
+   * Заявка с меткой стратегии из расширения {@code X-Strategy-Id}. Заголовок не входит в контракт
+   * БКС: это согласованное расширение эмулятора для отчётности.
+   */
+  public NewOrder toNewOrder(CreateOrderRequest request, String strategyId) {
     if (request == null) {
       throw new InvalidRequestException("Тело запроса обязательно");
     }
@@ -74,7 +82,8 @@ public class BksOrderMapper {
         timeInForce,
         request.orderQuantity(),
         request.price(),
-        parseExpiryDate(request.expiryDate()));
+        parseExpiryDate(request.expiryDate()),
+        normalizeStrategyId(strategyId));
   }
 
   public UUID parseUuid(String value, String field) {
@@ -306,6 +315,18 @@ public class BksOrderMapper {
       throw new InvalidRequestException(
           "expiryDate должен быть датой в формате yyyy-MM-dd", exception);
     }
+  }
+
+  /** Метка стратегии — расширение эмулятора: пустая строка означает отсутствие метки. */
+  private static String normalizeStrategyId(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    String trimmed = value.trim();
+    if (trimmed.length() > 64) {
+      throw new InvalidRequestException("X-Strategy-Id не может быть длиннее 64 символов");
+    }
+    return trimmed;
   }
 
   private static UUID requireUuid(String value, String field) {

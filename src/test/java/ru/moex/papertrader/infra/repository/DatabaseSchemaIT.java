@@ -12,7 +12,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.moex.papertrader.PostgresContainerSupport;
 
-/** Проверяет, что миграции V1–V3 создают ровно минимальный набор таблиц этапов 3–5. */
+/** Проверяет, что миграции V1–V4 создают ровно минимальный набор таблиц этапов 3–6. */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class DatabaseSchemaIT extends PostgresContainerSupport {
@@ -20,7 +20,7 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
   @Autowired private JdbcTemplate jdbcTemplate;
 
   @Test
-  void createsExactlyTenDomainTables() {
+  void createsExactlyTwelveDomainTables() {
     List<String> tables =
         jdbcTemplate.queryForList(
             "SELECT table_name FROM information_schema.tables"
@@ -32,6 +32,7 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
         .containsExactly(
             "account_balances",
             "accounts",
+            "backtest_results",
             "fills",
             "instruments",
             "market_data_snapshots",
@@ -39,6 +40,7 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
             "order_events",
             "orders",
             "positions",
+            "reports",
             "trading_calendar");
   }
 
@@ -63,15 +65,32 @@ class DatabaseSchemaIT extends PostgresContainerSupport {
             "instruments.lot_size",
             "orders.price",
             "fills.price",
+            "fills.reference_price",
             "order_events.price",
-            "positions.average_price");
+            "positions.average_price",
+            "backtest_results.threshold");
 
     assertThat(columns.get("nav_daily.cash").get("numeric_scale")).isEqualTo(2);
     assertThat(columns.get("fills.commission").get("numeric_scale")).isEqualTo(2);
     assertThat(columns.get("instruments.lot_size").get("numeric_scale")).isEqualTo(6);
     assertThat(columns.get("fills.price").get("numeric_scale")).isEqualTo(6);
+    assertThat(columns.get("fills.reference_price").get("numeric_scale")).isEqualTo(6);
     assertThat(columns.get("order_events.price").get("numeric_scale")).isEqualTo(6);
     assertThat(columns.get("positions.average_price").get("numeric_scale")).isEqualTo(6);
+    assertThat(columns.get("backtest_results.threshold").get("numeric_scale")).isEqualTo(6);
+    assertThat(columns.get("backtest_results.threshold").get("numeric_precision")).isEqualTo(9);
     assertThat(columns.get("nav_daily.cash").get("numeric_precision")).isEqualTo(19);
+  }
+
+  @Test
+  void storesReportPayloadsAsJsonb() {
+    List<String> jsonbColumns =
+        jdbcTemplate.queryForList(
+            "SELECT table_name || '.' || column_name FROM information_schema.columns"
+                + " WHERE table_schema = 'public' AND data_type = 'jsonb'",
+            String.class);
+
+    assertThat(jsonbColumns)
+        .contains("market_data_snapshots.payload", "reports.payload", "backtest_results.payload");
   }
 }

@@ -30,6 +30,28 @@ class BksOrderMapperTest {
 
   private final BksOrderMapper mapper = new BksOrderMapper();
 
+  private static CreateOrderRequest createRequest() {
+    return new CreateOrderRequest(
+        UUID.randomUUID().toString(),
+        "1",
+        "2",
+        "1",
+        null,
+        10L,
+        "SBER",
+        "TQBR",
+        new BigDecimal("285.50"),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null);
+  }
+
   @Test
   void mapsCreateRequestToNewOrder() {
     UUID uuid = UUID.randomUUID();
@@ -62,6 +84,27 @@ class BksOrderMapperTest {
     assertThat(newOrder.timeInForce()).isEqualTo(TimeInForce.DAY);
     assertThat(newOrder.quantity()).isEqualTo(10);
     assertThat(newOrder.price()).isEqualByComparingTo("285.50");
+  }
+
+  @Test
+  void propagatesStrategyHeaderAndTrimsIt() {
+    NewOrder newOrder = mapper.toNewOrder(createRequest(), "  momentum  ");
+
+    assertThat(newOrder.strategyId()).isEqualTo("momentum");
+  }
+
+  @Test
+  void treatsBlankStrategyHeaderAsAbsent() {
+    NewOrder newOrder = mapper.toNewOrder(createRequest(), "   ");
+
+    assertThat(newOrder.strategyId()).isNull();
+  }
+
+  @Test
+  void rejectsTooLongStrategyHeader() {
+    assertThatThrownBy(() -> mapper.toNewOrder(createRequest(), "x".repeat(65)))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessageContaining("X-Strategy-Id");
   }
 
   @Test

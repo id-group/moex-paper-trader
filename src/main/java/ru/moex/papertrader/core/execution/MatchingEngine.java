@@ -80,11 +80,10 @@ public final class MatchingEngine {
       long available = level.quantity();
       while (available > 0 && left > 0) {
         long quantity = Math.min(available, Math.min(left, maxPart));
+        BigDecimal referencePrice = level.price().setScale(PRICE_SCALE, RoundingMode.HALF_UP);
         BigDecimal price =
-            market
-                ? slippedPrice(order.side(), level.price(), target, adv)
-                : level.price().setScale(PRICE_SCALE, RoundingMode.HALF_UP);
-        fills.add(new MatchFill(price, quantity));
+            market ? slippedPrice(order.side(), level.price(), target, adv) : referencePrice;
+        fills.add(new MatchFill(price, referencePrice, quantity));
         available -= quantity;
         left -= quantity;
       }

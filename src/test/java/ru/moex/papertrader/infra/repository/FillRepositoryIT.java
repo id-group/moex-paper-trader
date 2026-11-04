@@ -63,6 +63,20 @@ class FillRepositoryIT extends PostgresContainerSupport {
   }
 
   @Test
+  void listsAccountFillsChronologicallyAndByInsertionWithinSameInstant() {
+    Long instrumentId = persistAccountInstrumentAndOrder();
+    FillEntity later = fills.saveAndFlush(fill(ORDER_ID, instrumentId, NOW.plusSeconds(60)));
+    FillEntity first = fills.saveAndFlush(fill(ORDER_ID, instrumentId, NOW));
+    FillEntity second = fills.saveAndFlush(fill(ORDER_ID, instrumentId, NOW));
+
+    entityManager.clear();
+
+    assertThat(fills.findByAccountIdOrderByExecutedAtAscIdAsc(ACCOUNT_ID))
+        .extracting(FillEntity::getId)
+        .containsExactly(first.getId(), second.getId(), later.getId());
+  }
+
+  @Test
   void rejectsFillWithUnknownOrder() {
     Long instrumentId = persistAccountInstrumentAndOrder();
 
@@ -106,13 +120,18 @@ class FillRepositoryIT extends PostgresContainerSupport {
   }
 
   private static FillEntity fill(String orderId, Long instrumentId) {
+    return fill(orderId, instrumentId, NOW);
+  }
+
+  private static FillEntity fill(String orderId, Long instrumentId, Instant executedAt) {
     return new FillEntity(
         orderId,
         ACCOUNT_ID,
         instrumentId,
         new BigDecimal("285.500000"),
+        new BigDecimal("285.500000"),
         10L,
         new BigDecimal("2.86"),
-        NOW);
+        executedAt);
   }
 }

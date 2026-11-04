@@ -13,6 +13,7 @@ import ru.moex.papertrader.infra.algoapi.IssProperties;
   MarketDataProperties.class,
   ReplayProperties.class,
   AlgoPackProperties.class,
-  IssProperties.class
+  IssProperties.class,
+  ReportProperties.class
 })
 public class InfraConfiguration {}

@@ -64,6 +64,23 @@ class NavDailyRepositoryIT extends PostgresContainerSupport {
   }
 
   @Test
+  void readsNavCurveForPeriodInclusivelyOrderedByDate() {
+    accounts.saveAndFlush(new AccountEntity(ACCOUNT_ID, NOW));
+    navDaily.saveAndFlush(snapshotAt(NAV_DATE.plusDays(2), new BigDecimal("1003000.00")));
+    navDaily.saveAndFlush(snapshotAt(NAV_DATE, new BigDecimal("1000000.00")));
+    navDaily.saveAndFlush(snapshotAt(NAV_DATE.minusDays(1), new BigDecimal("999000.00")));
+    navDaily.saveAndFlush(snapshotAt(NAV_DATE.plusDays(1), new BigDecimal("1002000.00")));
+
+    entityManager.clear();
+
+    assertThat(
+            navDaily.findByAccountIdAndNavDateBetweenOrderByNavDateAsc(
+                ACCOUNT_ID, NAV_DATE, NAV_DATE.plusDays(1)))
+        .extracting(NavDailyEntity::getNavDate)
+        .containsExactly(NAV_DATE, NAV_DATE.plusDays(1));
+  }
+
+  @Test
   void rejectsSecondSnapshotForSameAccountAndDate() {
     accounts.saveAndFlush(new AccountEntity(ACCOUNT_ID, NOW));
     navDaily.saveAndFlush(snapshot(new BigDecimal("1000000.00")));
@@ -73,9 +90,13 @@ class NavDailyRepositoryIT extends PostgresContainerSupport {
   }
 
   private static NavDailyEntity snapshot(BigDecimal cash) {
+    return snapshotAt(NAV_DATE, cash);
+  }
+
+  private static NavDailyEntity snapshotAt(LocalDate date, BigDecimal cash) {
     return new NavDailyEntity(
         ACCOUNT_ID,
-        NAV_DATE,
+        date,
         NOW,
         cash,
         new BigDecimal("2.86"),

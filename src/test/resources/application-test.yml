@@ -1,8 +1,19 @@
 # Профиль тестов: фиксированные refresh-токены вместо переменных окружения
 # и отключённый планировщик исполнения, чтобы фоновые тики не меняли заявки тестов.
+spring:
+  datasource:
+    hikari:
+      # Spring кэширует контексты между IT-классами, и каждый держит свой пул.
+      # Маленький пул не исчерпывает max_connections PostgreSQL (по умолчанию 100).
+      maximum-pool-size: 2
+      minimum-idle: 1
+
 emulator:
   execution:
     scheduler-enabled: false
+  reporting:
+    # Тестовый экспорт не должен засорять рабочий каталог отчётов.
+    output-dir: build/reports/test
   brokers:
     bks:
       auth:

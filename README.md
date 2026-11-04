@@ -13,15 +13,17 @@
 **REPLAY** (детерминированное воспроизведение — для сверки с бэктестом, целевое расхождение
 метрик < 30%).
 
-Текущий статус: этапы 1–4 завершены (скелет, контракт БКС HTTP MVP — `/api/bks/v1/**`,
-авторизация refresh→access, заявки, портфель, лимиты, рыночные данные LIVE/RECORD/REPLAY).
-Этап 5 реализован — модель исполнения ордеров (матчинг по стакану, проскальзывание,
-ликвидность, FOK/GTD/DAY, журнал `order_events`); коммит ожидает подтверждения владельца.
+Текущий статус: этапы 1–5 завершены (скелет, контракт БКС HTTP MVP — `/api/bks/v1/**`,
+авторизация refresh→access, заявки, портфель, лимиты, рыночные данные LIVE/RECORD/REPLAY,
+модель исполнения ордеров). Этап 6 реализован — отчётность и метрики (NAV, CAGR/Sharpe/Sortino/
+Max Drawdown/Calmar, FIFO win rate, журнал проскальзывания и комиссий, сверка с бэктестом,
+внутренний API `/api/internal/reports/**`); коммит ожидает подтверждения владельца.
 Подробности — [`docs/progress.md`](docs/progress.md) и отчёты этапов
 [`stage-2-report.md`](docs/agent-briefs/stage-2-report.md),
 [`stage-3-report.md`](docs/agent-briefs/stage-3-report.md),
 [`stage-4-report.md`](docs/agent-briefs/stage-4-report.md),
-[`stage-5-report.md`](docs/agent-briefs/stage-5-report.md).
+[`stage-5-report.md`](docs/agent-briefs/stage-5-report.md),
+[`stage-6-report.md`](docs/agent-briefs/stage-6-report.md).
 
 ## Документация
 
@@ -33,6 +35,7 @@
 | [`docs/progress.md`](docs/progress.md) | статус и прогресс по этапам |
 | [`docs/plan.md`](docs/plan.md) | текущий план работ |
 | [`docs/temporary-decisions.md`](docs/temporary-decisions.md) | временные решения и условия их пересмотра |
+| [`docs/reporting.md`](docs/reporting.md) | формулы метрик, журнал сделок, контракт бэктеста и внутренний API отчётов |
 | [`docs/agent-briefs/`](docs/agent-briefs/) | брифы для агентов-реализаторов (этапы 2–7) |
 | [`docs/bcs-api/`](docs/bcs-api/) | полный снапшот контракта БКС Trade API (страницы + JSON-схемы) |
 
@@ -94,6 +97,28 @@ $env:EMULATOR_MARKETDATA_MODE = 'REPLAY'
 и `session-open/session-close` (окно основной сессии, МСК). Выбор и сборка провайдера по режиму —
 `MarketDataConfiguration`; в REPLAY виртуальный таймлайн продвигает `ReplayClockAdvancer`
 (`replay.tick-ms` × `replay.speed`).
+
+## Отчётность
+
+После прогона формируется отчёт по счёту за период: кривая NAV, метрики (CAGR, Sharpe, Sortino,
+Max Drawdown, Calmar, FIFO win rate), журнал сделок с проскальзыванием и комиссией, разбивка по
+стратегиям и необязательное сравнение с внешним бэктестом (порог 30%). Отчёт сохраняется в
+`reports`, результат сверки — в `backtest_results`, файлы JSON/CSV пишутся в
+`emulator.reporting.output-dir` (по умолчанию `build/reports/emulator`).
+
+Метка стратегии передаётся при создании заявки БКС заголовком `X-Strategy-Id` (расширение
+контракта, до 64 символов) и попадает в `orders.strategy_id`.
+
+Внутренний API (без токена БКС, для доверенного контура):
+
+| Метод | Путь | Назначение |
+|---|---|---|
+| `POST` | `/api/internal/reports` | сформировать и сохранить отчёт |
+| `GET` | `/api/internal/reports?accountId=...` | список отчётов |
+| `GET` | `/api/internal/reports/{id}` | сохранённый отчёт |
+| `GET` | `/api/internal/reports/{id}/journal.csv` | CSV-журнал сделок |
+
+Формулы, контракт бэктеста и примеры JSON — [`docs/reporting.md`](docs/reporting.md).
 
 ## Разработка с AI-агентами
 

@@ -158,6 +158,34 @@ class OrderMapperTest {
   }
 
   @Test
+  void roundTripsStrategyId() {
+    Order original =
+        Order.accept(
+            new NewOrder(
+                UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                "SBER",
+                "TQBR",
+                Side.BUY,
+                OrderType.LIMIT,
+                TimeInForce.DAY,
+                10,
+                new BigDecimal("100.5"),
+                null,
+                "momentum"),
+            TestInstruments.sber(),
+            "ORD-1",
+            7,
+            ACCOUNT,
+            CREATED);
+
+    OrderEntity entity = mapper.toEntity(original, ACCOUNT, INSTRUMENT_ID);
+    Order restored = mapper.toDomain(entity, TestInstruments.sber());
+
+    assertThat(entity.getStrategyId()).isEqualTo("momentum");
+    assertThat(restored.strategyId()).isEqualTo("momentum");
+  }
+
+  @Test
   void normalizesPriceScaleOnRead() {
     Order original = accepted(OrderType.LIMIT, Side.BUY, new BigDecimal("100.500000"), 10);
     original.applyFill(new Fill(new BigDecimal("101.250000"), 4, BigDecimal.ZERO, CANCELLED));
