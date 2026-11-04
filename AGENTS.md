@@ -1,204 +1,73 @@
-# AGENTS.md — Инструкции для AI-агентов
+# AGENTS.md — инструкции AI-агентам
 
-Ты — Senior Java-разработчик. Работай аккуратно, придерживайся строгой типизации и
-архитектуры этого проекта. Используй лучшие практики и паттерны разработки.
+Ты — Senior Java-разработчик. Сохраняй архитектурные инварианты, строго типизируй код и следуй локальному стилю.
 
-## 1. Стек и окружение
+## Стек и окружение
 
-- **Java:** 25 (toolchain задан в `build.gradle`)
-- **Build Tool:** Gradle 9.8.2 — только wrapper `./gradlew` (Maven не используется)
-- **Framework:** Spring Boot 4.1.2 (версии зависимостей — в `gradle/libs.versions.toml`)
-- **ORM / DB:** Spring Data JPA, PostgreSQL 18, миграции — Flyway (кандидат, подтвердить
-  на этапе 3). Подключение БД — этап 3, бриф `stage-3-portfolio`; сейчас сборка и тесты
-  поднятой БД не требуют
-- **Тесты:** JUnit 5, AssertJ, Mockito (Testcontainers — с этапа 3, добавление по согласованию)
-- Дополнительно: Spring Actuator (мониторинг, health — `/actuator/health`), Jackson, Lombok,
-  MapStruct, JaCoCo, Spotless + Google Java Format
+- Java 25, Gradle 9.8.2 (только wrapper `./gradlew`), Spring Boot 4.1.2; версии библиотек — в `gradle/libs.versions.toml`.
+- Spring Data JPA, PostgreSQL 18; миграции Flyway (кандидат, см. бриф этапа 3). До этапа 3 сборка и тесты не требуют поднятой БД. Actuator health: `/actuator/health`.
+- JUnit 5, AssertJ, Mockito; Testcontainers — с этапа 3 и по согласованию. Дополнительно: Jackson, Lombok, MapStruct, JaCoCo, Spotless + Google Java Format.
+- Windows: перед Gradle установить JDK 25: `$env:JAVA_HOME=$env:MOEX_JAVA25_HOME`. Если переменная пуста — остановиться и сообщить владельцу. Системный `JAVA_HOME` указывает на JDK 17; GJF 1.36.1 требует JVM 21+.
+- Исходники и конфиги — UTF-8 без BOM.
 
-### Окружение (Windows) — ВАЖНО
+## Команды
 
-- Перед любым запуском Gradle выставлять JDK 25:
-  `$env:JAVA_HOME=$env:MOEX_JAVA25_HOME` (путь к JDK 25 задаётся переменной пользователя `MOEX_JAVA25_HOME`; если она пуста — остановиться и сообщить владельцу)
-  (системный JAVA_HOME указывает на JDK 17, а GJF 1.36.1 требует JVM 21+ — без этого
-  `spotlessCheck` падает)
-- Все исходники и конфиги — UTF-8 **без BOM**
+Всегда через wrapper: `./gradlew clean build`, `./gradlew test`, `./gradlew spotlessCheck`, `./gradlew spotlessApply`, `./gradlew bootRun`.
+Для одной тестовой задачи: `./gradlew test --tests "ru.moex.papertrader.core.portfolio.VirtualPortfolioTest"`.
 
----
+## Архитектура и инварианты
 
-## 2. Основные команды
+Один Gradle-проект; пакеты: `core` (чистое доменное ядро), `bks` (адаптер брокера), `infra` (Spring/JPA/API-клиенты). Основные зоны `core`: `domain`, `portfolio`, `execution`, `marketdata`, `commission`, `reporting`; `infra`: `repository`, `model`, `mapper`, `services`, `algoapi`.
 
-Всегда используй обертку Gradle:
+1. `core` не зависит от Spring и внешних слоёв; зависимости направлены `bks/infra → core`. Это проверяет ArchUnit.
+2. Каждый брокер — sibling-пакет (`bks`, `tbank`, …) со слоями `api/contract/adapter`, поверх общего `core`.
+3. API брокеров доступны одновременно под собственными путями (БКС: `/api/bks/v1/**`).
+4. Специфика БКС остаётся в `bks`: авторизация refresh→access, лимиты T0/T1/T2/T365 и ГО фьючерсов; `core` хранит брокер-независимый снапшот портфеля. DTO зеркалят замороженный снапшот. См. skills `bcs-contract`, `bcs-portfolio`.
+5. Режимы котировок LIVE/RECORD/REPLAY и детерминизм (фиксируемый seed) обязательны. См. `marketdata-modes`.
+6. Исполнение ордеров реализуется по полной спецификации, не упрощать без согласия владельца. См. `execution-model`.
+7. Комиссии по умолчанию: акции 0.1%, ГО фьючерсов ~10%, настраиваются per-instrument. Corporate actions — заглушка только если это явно разрешено брифом/временным решением.
 
-```
-./gradlew clean build    # сборка + тесты + проверка стиля
-./gradlew bootRun        # запуск сервиса: http://localhost:8080; health: GET /actuator/health
-./gradlew test           # все тесты
-./gradlew test --tests "ru.moex.papertrader.core.portfolio.VirtualPortfolioTest"  # один тест
-./gradlew spotlessApply  # автоформатирование (Google Java Format)
-./gradlew spotlessCheck  # проверка стиля
-```
+Подробные ADR: `docs/ARCHITECTURE.md`.
 
----
+## Код и тесты
 
-## 3. Архитектура и структура папок
+- REST DTO — `record`; JPA `@Entity` — обычные классы. DTO в `bks/contract` — точное зеркало контракта.
+- Null-safety: `@NonNull`/`@Nullable` (`org.springframework.lang` или Lombok), где уместно — `Optional<T>`.
+- Логирование — SLF4J через Lombok `@Slf4j`, не `System.out.println()`.
+- `@Transactional` — только сервисный слой `infra/services`; в `core` нет Spring-аннотаций. Бизнес-исключения обрабатывает глобальный `@RestControllerAdvice`.
+- Именование: `*Controller`, `*Service`/`*ServiceImpl`, `*Request`/`*Response`, `*Test`. Комментарии по-русски, кроме Javadoc.
+- Форматирование — Google Java Format через Spotless. Текущая совместимая пара: Spotless 8.10.4 + GJF 1.36.1; GJF 1.37.0 несовместима (`NoSuchMethodError: Style.valueOf`). Перед обновлением проверять `spotlessApply`.
+- Unit-тесты — JUnit 5 + Mockito; не поднимать Spring Context без необходимости. Для новой бизнес-логики и каждого нового сервиса — покрытие минимум 60% (временно; обычная цель 80%, см. `docs/temporary-decisions.md` #9). БД-интеграции — Testcontainers с этапа 3 по согласованию.
 
-Один Gradle-проект, разделение — пакетами (модулей нет). Порты и адаптеры (детали и
-обоснования — `docs/ARCHITECTURE.md` §2–§3): `core` — чистое доменное ядро, `bks` —
-адаптер брокера, `infra` — инфраструктура.
+## Запреты
 
-```text
-src/
-├── main/
-│   ├── java/ru/moex/papertrader/   # корень пакета: запуск (Application), Spring-конфигурация
-│   │   ├── core/            # доменное ядро — ЧИСТАЯ JAVA, без Spring
-│   │   │   ├── domain/      # Instrument, Order, Fill, Position, Portfolio
-│   │   │   ├── portfolio/   # кэш, позиции, ГО и вариационная маржа, NAV
-│   │   │   ├── execution/   # матчинг ордеров, проскальзывание, ликвидность
-│   │   │   ├── marketdata/  # порт MarketDataProvider + порт Clock; LIVE/RECORD/REPLAY
-│   │   │   ├── commission/  # модель комиссий
-│   │   │   └── reporting/   # кривая NAV, метрики, журнал сделок
-│   │   ├── bks/             # адаптер БКС (sibling core; новый брокер = sibling-пакет)
-│   │   │   ├── api/         # REST-контроллеры под контракт trade-api.bcs.ru → /api/bks/v1/**
-│   │   │   ├── contract/    # DTO — точное зеркало docs/bcs-api
-│   │   │   └── adapter/     # маппинг DTO ↔ домен core
-│   │   └── infra/
-│   │       ├── repository/  # PostgreSQL (Spring Data JPA)
-│   │       ├── model/       # JPA-сущности (@Entity)
-│   │       ├── mapper/      # MapStruct: сущность ↔ домен core
-│   │       ├── services/    # Spring-сервисы оркестрации (интерфейс + *ServiceImpl)
-│   │       └── algoapi/     # клиенты AlgoPack / MOEX ISS — реализации core/marketdata
-│   └── resources/
-│       ├── db/migration/    # SQL-скрипты Flyway (появятся на этапе 3, V1__init.sql)
-│       └── application.yml
-└── test/
-    └── java/ru/moex/papertrader/  # unit и интеграционные тесты
-```
+- Не коммитить `.env`, `.env.local`, `*.key`, `*.pem`.
+- Не менять `build.gradle`/`settings.gradle` и не добавлять библиотеки без явного разрешения.
+- Не менять DTO в `ru.moex.papertrader.bks.contract` без согласования; не редактировать `docs/bcs-api/*.md` (разрешено добавлять недостающие sidecar `*.json`).
+- Не импортировать Spring, `bks` или `infra` в `core`; не удалять тесты — только добавлять или исправлять.
+- Не коммитить заглушки, кроме случаев, прямо разрешённых брифом или `docs/temporary-decisions.md`.
+- Не менять `src/main/resources/application-prod.yml` и `SecurityConfig`, если об этом прямо не попросили. Не использовать устаревшие API (`java.util.Date` → `java.time.*`).
+- Коммитить только после явного подтверждения пользователя.
 
-### Принципы (инварианты; нумерация фиксирована — на неё ссылаются ArchitectureTest и бриф stage-5; обоснования — ADR в docs/ARCHITECTURE.md)
+## Эффективная работа без потери качества
 
-1. **core не зависит от Spring и ни от чего внешнего.** Зависимости:
-   `bks/infra/корневые классы → core`, никогда обратно. Контроль — ArchUnit-тест.
-2. **Новый брокер = sibling-пакет** (`tbank/`, `alor/`, ...) со слоями `api/contract/adapter`
-   поверх того же core. Ядро при этом не меняется.
-3. **API всех подключённых брокеров доступны всегда одновременно** (каждый под своими путями,
-   например, БКС — `/api/bks/v1/**`).
-4. **Специфика БКС живёт только в `bks/`**: Keycloak-подобная авторизация (refresh→access),
-   портфель-массив лимитов в разрезе сроков, ГО фьючерсов. В core — брокер-независимый
-   снапшот портфеля. Спецификации — skills `bcs-contract`, `bcs-portfolio`.
-5. **Режимы котировок:** LIVE / RECORD / REPLAY, детерминизм обязателен (фиксируемый seed).
-   Спецификация — skill `marketdata-modes`.
-6. **Модель исполнения — по спецификации, не упрощать без согласия владельца.**
-   Полная спецификация — skill `execution-model`.
-7. **Комиссии:** по умолчанию 0.1% для акций, ГО ~10% для фьючерсов (настраивается
-   per-instrument). Корпоративные события — заглушка с TODO (разрешена брифом этапа 3).
+- Соблюдай также все более локальные `AGENTS.md` в затронутых каталогах.
+- Для ясной локальной задачи работай напрямую в текущей сессии; не запускай полный GSD-процесс, исследование или субагентов «на всякий случай».
+- Подключай skills только по затронутой области. Читай точечные файлы и нужные разделы документации, а не целые папки/документы.
+- Делегируй только независимую существенную работу, когда выигрыш от параллельности оправдывает отдельные контексты. Не запускай дублирующие ревью/исследования.
+- Для итераций запускай релевантный тест; перед завершением — `spotlessCheck` после правок Java и `./gradlew test`. Не пропускай тесты, обязательную проверку или требования к покрытию ради экономии токенов.
+- Для небольших исправлений в GSD используй `/gsd-quick`; полные этапные workflow — для действительно этапных задач. У `/gsd-execute-phase` режим `--interactive` дешевле по токенам, когда задачи небольшие или последовательные.
 
----
+## Навыки, команды и завершение
 
-## 4. Соглашения по коду (Code Style)
+Загружай профильный skill перед соответствующей работой: `bcs-contract`, `bcs-portfolio`, `marketdata-modes`, `execution-model`, `java-conventions`, `testing`.
 
-- **DTO:** для передачи данных через REST API используй Java `record` (JPA-сущности
-  `@Entity` — обычные классы). DTO БКС в `bks/contract` — точное зеркало схем снапшота.
-- **Null-safety:** аннотации `@NonNull` / `@Nullable` (`org.springframework.lang` или
-  Lombok); где уместно — `Optional<T>`.
-- **Логирование:** SLF4J через Lombok `@Slf4j`. Никогда `System.out.println()`.
-- **Транзакции:** `@Transactional` — строго на сервисном слое (`infra/services`), не на
-  контроллерах и репозиториях. В `core` Spring-аннотаций нет вовсе (принцип №1).
-- **Исключения:** кастомные бизнес-исключения (например, `ResourceNotFoundException`),
-  перехватываются глобальным `@RestControllerAdvice`.
-- **Именование:** контроллеры `*Controller`, сервисы `*Service` / `*ServiceImpl`,
-  DTO `*Request` / `*Response`, тесты `*Test`.
-- **Формат:** Google Java Format через Spotless (`./gradlew spotlessApply` перед коммитом).
-  Версия GJF жёстко связана с версией Spotless (текущая пара: 8.10.4 + GJF 1.36.1;
-  GJF 1.37.0 несовместима — `NoSuchMethodError: Style.valueOf`): перед обновлением любой
-  из версий проверять `spotlessApply`
-- **Мапперы:** MapStruct (если целесообразно)
-- Комментарии на русском языке (кроме Javadoc)
+- `/precommit` — `spotlessCheck` + тесты + покрытие + чистота git + отчёт; перед каждым коммитом.
+- `/tdd <задача>` — red → green → refactor; `/coverage [пакет]` — JaCoCo; `/finish-stage N` — закрытие этапа и обновление прогресса.
+- Документация библиотек и платформ: Context7 (`resolve-library-id`, затем `query-docs`), когда задача зависит от их API/версий.
+- При изменении архитектуры обновляй `docs/ARCHITECTURE.md` и README. Статус этапов — `docs/progress.md`; планы — `docs/plan.md`, `docs/roadmap.md`, брифы — `docs/agent-briefs/`.
+- Перед коммитом выполнить `/precommit`; после завершения сообщить проверки и известные ограничения. Обновляй `docs/progress.md` по завершении этапа.
 
----
+## Ветки
 
-## 5. Правила написания тестов
-
-- Unit-тесты — JUnit 5 + Mockito. Не поднимай Spring Context там, где класс можно
-  протестировать в изоляции.
-- Интеграционные тесты с базой данных — `@Testcontainers` (с этапа 3; подключение
-  зависимости — по согласованию).
-- Каждый новый Service — минимум 60% покрытия unit-тестами (временно, норма — 80%; см. `docs/temporary-decisions.md` #9).
-
----
-
-## 6. Запреты (CRITICAL)
-
-- ❌ Никогда не коммитить `.env`, `.env.local`, `*.key`, `*.pem`
-- ❌ Не изменять `build.gradle`, `settings.gradle` без явного разрешения (в т.ч. новые
-  библиотеки — только по согласованию)
-- ❌ Не менять DTO в `ru.moex.papertrader.bks.contract` без согласования (зеркалят контракт БКС)
-- ❌ Не редактировать `docs/bcs-api/*.md` — снапшот заморожен (разрешено только добавлять
-  недостающие sidecar-`*.json` рядом со страницами)
-- ❌ Не импортировать Spring / `bks` / `infra` в пакетах `core` (принцип №1, ArchUnit)
-- ❌ Не удалять тесты — только добавлять или исправлять
-- ❌ Не коммитить заглушки вместо реальной логики, КРОМЕ случаев, явно разрешённых брифом
-  (пример: `CorporateActionHandler` — этап 3) или `docs/temporary-decisions.md`
-- ❌ Не изменять `src/main/resources/application-prod.yml` и `SecurityConfig`, если тебя
-  об этом прямо не попросили
-- ❌ Устаревшие API не использовать (`java.util.Date` → только `java.time.*`)
-
----
-
-## 7. Что агент ДОЛЖЕН делать
-
-- Писать тесты для всей новой бизнес-логики (минимум 60% покрытия, временно)
-- Перед коммитом проходить гейт `/precommit` (spotlessCheck + `./gradlew test` + чистота git)
-- Загружать профильный skill перед задачей в соответствующей области (см. §9)
-- Обновлять документацию (этот файл, README.md, `docs/`) при изменении архитектуры
-- Использовать существующие интерфейсы и не создавать дубликаты функционала
-
-## 8. Ветки
-
-- `main` — стабильная версия, защищена от прямых коммитов
-- `feature/*` — новые функции (например, `feature/market-data-feed`)
-- `fix/*` — исправления ошибок (например, `fix/commission-calculation`)
-
-## 9. Инструменты агента
-
-### Skills (`.opencode/skills/`)
-
-Перед работой в соответствующей области загрузить профильный skill (tool `skill`):
-
-- `bcs-contract` — DTO/контроллеры БКС, снапшот `docs/bcs-api`, авторизация, монтаж путей
-- `bcs-portfolio` — виртуальный портфель, лимиты БКС, ГО, вариационная маржа, NAV, комиссии
-- `marketdata-modes` — LIVE/RECORD/REPLAY, `Clock`, seed, AlgoPack/MOEX ISS
-- `execution-model` — матчинг, проскальзывание, ADV-тиры, жизненный цикл ордеров
-- `java-conventions` — соглашения по коду Java: record-DTO, null-safety, SLF4J, слои транзакций и исключений
-- `testing` — TDD, JUnit 5 / AssertJ / Mockito, изоляция, покрытие ≥ 60% (временно), ArchUnit
-
-### Команды (`.opencode/commands/`)
-
-- `/precommit` — гейт перед коммитом: spotlessCheck + тесты + покрытие ≥ 60% (временно) + чистота git + отчёт;
-  запускать перед каждым коммитом
-- `/tdd <задача>` — цикл red → green → refactor (разработка по TDD: тест раньше кода)
-- `/coverage [пакет]` — прогон JaCoCo и список классов ниже порога покрытия
-- `/finish-stage N` — закрытие этапа: DoD, покрытие, обновление `docs/progress.md`
-
-### Context7 (MCP)
-
-Документация библиотек (Spring Boot 4.x, MapStruct, Spotless и т.п.): сначала
-`resolve-library-id`, затем `query-docs`. Предпочтительнее веб-поиска — данные в обучающих
-материалах модели могут отставать от текущих версий.
-
-## 10. Чек-лист завершения задачи (Definition of Done)
-
-- [ ] `./gradlew spotlessCheck` зелёный (после правок Java)
-- [ ] `./gradlew test` зелёный, покрытие новой логики ≥ 60% (временно, см. `docs/temporary-decisions.md` #9)
-- [ ] Гейт `/precommit` пройден; коммит — только с явного подтверждения пользователя
-- [ ] Обновлены `docs/progress.md` (статус), при изменении архитектуры —
-      `docs/ARCHITECTURE.md` и README.md
-- [ ] Загружен профильный skill, если задача в его области
-
-## 11. Документация
-
-- ADR — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); этапы — [`docs/roadmap.md`](docs/roadmap.md)
-- Статус и прогресс (обновлять по завершении каждого этапа) — [`docs/progress.md`](docs/progress.md);
-  текущий план — [`docs/plan.md`](docs/plan.md)
-- Временные решения и условия их пересмотра — [`docs/temporary-decisions.md`](docs/temporary-decisions.md)
-- Брифы этапов 2–7 — [`docs/agent-briefs/`](docs/agent-briefs/); снапшот контракта БКС —
-  [`docs/bcs-api/`](docs/bcs-api/)
+`main` — стабильная защищённая ветка; новые задачи — `feature/*` или `fix/*`.

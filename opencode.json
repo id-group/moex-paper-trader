@@ -26,6 +26,9 @@
   ],
   "compaction": {
     "auto": true,
-    "keep": { "tokens": 20000 }
+    "keep": {
+      "tokens": 12000
+    },
+    "buffer": "15%"
   }
 }
