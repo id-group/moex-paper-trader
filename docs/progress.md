@@ -25,8 +25,8 @@
   OpenCode (`opencode service set env ...`), сервис перезапущен; `.\gradlew.bat --version`
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.
 
-- **Этап 6 завершён — отчётность и метрики** (2026-11-04; ветка
-  `feature/stage-6-reporting`, коммит ожидает подтверждения владельца). Отчёт:
+- **Этап 6 завершён — отчётность и метрики** (2026-11-04; коммит `64a2697`, ветка
+  `feature/stage-6-reporting`). Отчёт:
   `docs/agent-briefs/stage-6-report.md`, формулы и контракты — `docs/reporting.md`.
   - `core/reporting`: `MetricsCalculator` (CAGR, Sharpe, Sortino, Max Drawdown, Calmar по
     дневному NAV, 252 торговых дня), `TradeJournal` + `FifoMatcher` (win rate, частичные

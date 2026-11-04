@@ -11,7 +11,7 @@
 
 - [x] Этап 6 — отчётность и метрики (2026-11-04; ветка `feature/stage-6-reporting`; бриф
       `docs/agent-briefs/stage-6-reporting.md`, отчёт `docs/agent-briefs/stage-6-report.md`,
-      формулы и контракты — `docs/reporting.md`). Коммит ожидает подтверждения владельца.
+      формулы и контракты — `docs/reporting.md`). Коммит `64a2697`.
 - [x] Этап 5 — модель исполнения ордеров (2026-11-04; коммит `544adfe`, ветка
       `feature/stage-5-execution`; бриф `docs/agent-briefs/stage-5-execution.md`,
       отчёт `docs/agent-briefs/stage-5-report.md`).

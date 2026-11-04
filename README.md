@@ -17,7 +17,7 @@
 авторизация refresh→access, заявки, портфель, лимиты, рыночные данные LIVE/RECORD/REPLAY,
 модель исполнения ордеров). Этап 6 реализован — отчётность и метрики (NAV, CAGR/Sharpe/Sortino/
 Max Drawdown/Calmar, FIFO win rate, журнал проскальзывания и комиссий, сверка с бэктестом,
-внутренний API `/api/internal/reports/**`); коммит ожидает подтверждения владельца.
+внутренний API `/api/internal/reports/**`); коммит `64a2697`.
 Подробности — [`docs/progress.md`](docs/progress.md) и отчёты этапов
 [`stage-2-report.md`](docs/agent-briefs/stage-2-report.md),
 [`stage-3-report.md`](docs/agent-briefs/stage-3-report.md),
