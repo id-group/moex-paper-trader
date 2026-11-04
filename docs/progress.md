@@ -25,9 +25,8 @@
   OpenCode (`opencode service set env ...`), сервис перезапущен; `.\gradlew.bat --version`
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.
 
-- **Этап 5 завершён — модель исполнения ордеров** (2026-11-04; ветка
-  `feature/stage-5-execution`, коммит — после подтверждения владельца). Отчёт:
-  `docs/agent-briefs/stage-5-report.md`.
+- **Этап 5 завершён — модель исполнения ордеров** (2026-11-04; коммит `544adfe`,
+  ветка `feature/stage-5-execution`). Отчёт: `docs/agent-briefs/stage-5-report.md`.
   - `core/execution`: `MatchingEngine`, `SpecSlippageModel` (база 0.05–0.15 % + тиры ADV),
     `AdvLiquidityPolicy` (REJECT/SPLIT), `MatchFill`/`MatchResult`, события жизненного цикла.
   - Маркет — немедленный кросс стакана с проскальзыванием в неблагоприятную сторону; лимит —

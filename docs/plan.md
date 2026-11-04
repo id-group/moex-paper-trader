@@ -13,8 +13,8 @@
 
 ## Закрытые пункты
 
-- [x] Этап 5 — модель исполнения ордеров (2026-11-04; ветка `feature/stage-5-execution`,
-      коммит — после подтверждения владельца; бриф `docs/agent-briefs/stage-5-execution.md`,
+- [x] Этап 5 — модель исполнения ордеров (2026-11-04; коммит `544adfe`, ветка
+      `feature/stage-5-execution`; бриф `docs/agent-briefs/stage-5-execution.md`,
       отчёт `docs/agent-briefs/stage-5-report.md`).
 
 - [x] Этап 4 — рыночные данные LIVE/RECORD/REPLAY (коммит `7c0b7fd`,
