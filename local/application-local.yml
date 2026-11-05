@@ -1,0 +1,61 @@
+# Локальный профиль запуска (IDE / bootRun).
+#
+# Активация:
+#   spring.profiles.active=local
+#   spring.config.additional-location=file:./local/
+#
+# Профиль задаёт параметры PostgreSQL из local/docker-compose.yml и закрывает «неопределённые»
+# переменные окружения значениями по умолчанию: без BKS_REFRESH_TOKEN_* и ALGO_PACK_TOKEN
+# приложение стартует, а API БКС доступно с локальными refresh-токенами.
+# Любое значение можно переопределить переменной окружения.
+server:
+  # 8080 на машине разработчика может быть занят или сбрасывать соединения; профиль local
+  # использует 18080. Переопределяется SERVER_PORT.
+  port: ${SERVER_PORT:18080}
+
+spring:
+  datasource:
+    # Порт 5433: на машине разработчика 5432 может занимать системный PostgreSQL.
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/papertrader}
+    username: ${DB_USERNAME:papertrader}
+    password: ${DB_PASSWORD:papertrader}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Схему задаёт Flyway при старте; Hibernate только сверяет сущности.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+
+emulator:
+  portfolio:
+    account: PAPER-0001
+    initial-cash: 1000000.00
+    currency: RUB
+  # Для локального запуска сеть не нужна: встроенная заглушка инструментов и котировок.
+  # Для LIVE/RECORD задайте emulator.marketdata.mode и ALGO_PACK_TOKEN.
+  marketdata:
+    mode: ${EMULATOR_MARKETDATA_MODE:STUB}
+  execution:
+    scheduler-enabled: true
+  reporting:
+    output-dir: build/reports/emulator
+  algoapi:
+    # Ключ AlgoPack нужен только для LIVE/RECORD; пустое значение — деградация до MOEX ISS.
+    token: ${ALGO_PACK_TOKEN:}
+  brokers:
+    bks:
+      auth:
+        # Локальные refresh-токены эмулятора: позволяют вызвать /api/bks/.../token без env.
+        # Это тестовые значения для разработки, не секреты.
+        refresh-tokens:
+          - token: ${BKS_REFRESH_TOKEN_TRADE:local-trade-refresh-token}
+            client-id: trade-api-write
+          - token: ${BKS_REFRESH_TOKEN_READ:local-read-refresh-token}
+            client-id: trade-api-read
+
+logging:
+  level:
+    root: INFO
+    ru.moex.papertrader: DEBUG

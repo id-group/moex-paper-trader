@@ -37,6 +37,7 @@
 | [`docs/reporting.md`](docs/reporting.md) | формулы метрик, журнал сделок, контракт бэктеста и внутренний API отчётов |
 | [`docs/agent-briefs/`](docs/agent-briefs/) | брифы для агентов-реализаторов (этапы 2–7) |
 | [`docs/bcs-api/`](docs/bcs-api/) | полный снапшот контракта БКС Trade API (страницы + JSON-схемы) |
+| [`local/`](local/README.md) | локальный запуск: PostgreSQL 18 в Docker и профиль Spring `local` для IDE |
 
 ## Локальный запуск
 
@@ -57,15 +58,15 @@ $env:JAVA_HOME = $env:MOEX_JAVA25_HOME   # переменная с путём к
 ### 2. PostgreSQL 18
 
 ```powershell
-$env:DB_PASSWORD = '<пароль>'   # обязателен для docker-compose.yml, в git не хранится
-docker compose up -d
-docker compose ps               # papertrader-postgres: healthy
+docker compose -f local/docker-compose.yml up -d
+docker compose -f local/docker-compose.yml ps     # papertrader-local-postgres: healthy
 ```
 
-Порт хоста — `DB_PORT` (по умолчанию 5432); база и пользователь — `papertrader`. Схему при
-старте приложения создаёт Flyway: вручную миграции накатывать не нужно. Остановка —
-`docker compose down` (данные остаются в томе `pgdata`), полная очистка — `docker compose
-down -v`.
+Пароль по умолчанию — `papertrader` (переопределяется `DB_PASSWORD`), порт хоста — `DB_PORT`
+(5433; на машине 5432 может занимать системный PostgreSQL). База и пользователь — `papertrader`.
+Схему при старте приложения создаёт Flyway: вручную миграции накатывать не нужно. Остановка —
+`docker compose -f local/docker-compose.yml down` (данные остаются в томе
+`papertrader-local_pgdata`), полная очистка — добавить `-v`.
 
 ### 3. Переменные окружения
 
@@ -80,20 +81,36 @@ down -v`.
 
 ### 4. Запуск сервиса
 
-```powershell
-.\gradlew.bat bootRun
+Для IDE и локальной разработки есть готовый профиль `local` — каталог
+[`local/`](local/README.md): `application-local.yml` с параметрами БД и локальными
+refresh-токенами БКС.
+
+**IntelliJ IDEA:** Run → Edit Configurations… → Spring Boot (или Application), main class
+`ru.moex.papertrader.BrokerEmulatorApplication`, рабочая папка — корень проекта,
+**Active profiles** = `local`, VM options:
+
+```text
+-Dspring.config.additional-location=file:./local/
 ```
 
-Сервис — http://localhost:8080 (порт меняется ключом `server.port` или переменной
-`SERVER_PORT`). Проверка:
+**Терминал:**
 
 ```powershell
-Invoke-RestMethod http://localhost:8080/actuator/health   # status = UP
+.\gradlew.bat bootRun --args="--spring.profiles.active=local --spring.config.additional-location=file:./local/"
+```
+
+Без профиля `local` приложение возьмёт значения по умолчанию из
+`src/main/resources/application.yml` (порт БД 5432) — для контейнера из `local/` нужен профиль
+`local` либо переменная `DB_URL`. В профиле `local` сервис слушает http://localhost:18080
+(8080 на машине может быть занят), порт меняется переменной `SERVER_PORT`. Проверка:
+
+```powershell
+Invoke-RestMethod http://localhost:18080/actuator/health   # status = UP
 ```
 
 API БКС смонтирован под `/api/bks/v1/**`, внутренний API отчётов — `/api/internal/reports/**`.
 Примеры запросов и коды ошибок — [`docs/bcs-api/`](docs/bcs-api/) и
-[`docs/reporting.md`](docs/reporting.md).
+[`docs/reporting.md`](docs/reporting.md). Подробности локального профиля — [`local/README.md`](local/README.md).
 
 ### 5. Тесты
 
@@ -122,18 +139,22 @@ Docker обязателен: интеграционные тесты подни�
 | `DB_USERNAME` | `papertrader` | пользователь БД |
 | `DB_PASSWORD` | пусто | пароль БД; только из окружения, в git не хранится |
 
-Локальный PostgreSQL 18 поднимается файлом `docker-compose.yml` (PowerShell):
+Локальный PostgreSQL 18 поднимается файлом [`local/docker-compose.yml`](local/docker-compose.yml)
+(PowerShell):
 
 ```powershell
-$env:DB_PASSWORD = '<пароль>'  # пароль задаёт разработчик; в git он не коммитится
-docker compose up -d
-docker compose down            # остановка; данные остаются в томе pgdata
+docker compose -f local/docker-compose.yml up -d
+docker compose -f local/docker-compose.yml down   # остановка; данные остаются в томе
 ```
 
-Без `DB_PASSWORD` compose отказывается стартовать. Порт хоста — 5432 (переопределяется
-переменной `DB_PORT`). Данные лежат в именованном томе, примонтированном в
+Пароль по умолчанию — `papertrader` (переопределяется `DB_PASSWORD`). Порт хоста — 5433
+(переопределяется переменной `DB_PORT`; 5432 на машине может занимать системный PostgreSQL).
+Данные лежат в именованном томе `papertrader-local_pgdata`, примонтированном в
 `/var/lib/postgresql`: это точка монтирования для `postgres:18` (внутри образа `PGDATA` —
 `/var/lib/postgresql/18/docker`).
+
+Профиль Spring `local` с этими же параметрами и значениями переменных по умолчанию —
+[`local/application-local.yml`](local/application-local.yml) (как запускать — [`local/README.md`](local/README.md)).
 
 Схему создаёт и изменяет только **Flyway** (`src/main/resources/db/migration`);
 `spring.jpa.hibernate.ddl-auto=validate` означает, что Hibernate лишь сверяет сущности со

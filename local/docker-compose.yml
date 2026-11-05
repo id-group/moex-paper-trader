@@ -1,0 +1,35 @@
+# Локальный PostgreSQL 18 для запуска проекта из IDE и через bootRun.
+# Запуск из корня репозитория:
+#   docker compose -f local/docker-compose.yml up -d
+# или из этого каталога:
+#   docker compose up -d
+# Пароль по умолчанию — local (совпадает с local/application-local.yml); переопределяется DB_PASSWORD.
+name: papertrader-local
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: papertrader-local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: papertrader
+      POSTGRES_USER: papertrader
+      # Для локальной разработки пароль по умолчанию задан прямо здесь; в git секретов нет.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-papertrader}
+    ports:
+      # Порт хоста: 5433 по умолчанию — на машине часто уже занят системным PostgreSQL на 5432.
+      # Переопределяется DB_PORT.
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      # В postgres:18 точка монтирования — /var/lib/postgresql (PGDATA внутри: 18/docker).
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U papertrader -d papertrader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  # Именованный том: данные сохраняются между перезапусками контейнера.
+  pgdata:
