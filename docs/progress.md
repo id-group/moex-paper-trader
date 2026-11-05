@@ -21,6 +21,30 @@
 
 ## Ноябрь 2026
 
+- **Этап 7 завершён — сквозной прогон и сверка с бэктестом** (2026-11-05; ветка
+  `feature/stage-7-integration`; бриф `docs/agent-briefs/stage-7-integration.md`, отчёт
+  `docs/agent-briefs/stage-7-report.md`).
+  - `it/FullCycleReplayIntegrationTest`: детерминированный REPLAY-набор (24 торговых дня,
+    SBER/GAZP/SiU6) → HTTP-контракт БКС (token → orders/sync → portfolio → limits →
+    orders/search → trades/search) → матчинг → NAV по дням → `/api/internal/reports` → сверка
+    с эталоном `BacktestComparator` (порог 30%).
+  - `it/replay`: `ReplayDataset` (детерминированный генератор, эквивалент записи сессии),
+    `SmaCrossoverStrategy` (SMA 16/64, long-only + один фьючерсный round trip),
+    `IdealBacktest` (эталон по ценам стакана без проскальзывания и комиссий).
+  - `ReplaySeedSupport`: идемпотентный сидинг инструментов, календаря и снапшотов через
+    `BeanPostProcessor` до создания `MarketDataProvider` (таймлайн REPLAY читается на старте).
+  - Контрольный прогон: максимум расхождения 18.53% (Sortino), `passed = true`; издержки
+    эмулятора ≈0.78% NAV (проскальзывание 5 694.96 RUB, комиссия 2 111.36 RUB).
+  - Исправлен разрыв контракта: `POST /v1/trades/search` теперь читает `fills` через
+    `JpaTradeServiceImpl` (раньше in-memory хранилище никто не наполнял).
+  - `it/LiveSmokeIntegrationTest` (тег `live`): ручной smoke против AlgoPack/ISS, по умолчанию
+    пропускается без `ALGO_PACK_TOKEN`.
+  - Проверка: `./gradlew clean build` зелёный; 687 тестов, 93 сюиты, 0 падений, 1 пропуск;
+    JaCoCo bundle 93.3% инструкций / 77.5% ветвей; `spotlessCheck` зелёный.
+  - Решения: эталон считается из того же набора без издержек (внешнего эталона нет); набор
+    синтетический и детерминированный; отдельная Gradle-задача `integrationTest` не вводилась
+    (`build.gradle` не менялся).
+
 - Закрыт хвост окружения: `MOEX_JAVA25_HOME` прописан в конфиг фонового сервиса
   OpenCode (`opencode service set env ...`), сервис перезапущен; `.\gradlew.bat --version`
   показывает `Launcher JVM: 25.0.4` без ручного выставления `JAVA_HOME`.

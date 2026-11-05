@@ -231,6 +231,10 @@ V4 — `strategy_id`, `reference_price`, `reports` и `backtest_results` эта�
 открытым вопросом владельца. Черновик `positions_daily` заменён таблицей `positions` (текущее
 состояние).
 
+`POST /v1/trades/search` читает сделку из `fills` (номер — PK `fills`), заявка даёт номер, сторону
+и клиентский код, справочник — инструмент (`JpaTradeServiceImpl`, этап 7); in-memory
+`InMemoryTradeServiceImpl` этапа 2 оставлен только как база unit-тестов сортировки/пагинации.
+
 
 ## 10. Отчётность (core/reporting)
 

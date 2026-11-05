@@ -5,10 +5,13 @@
 
 ## Сейчас
 
-- [ ] Этап 7 — интеграция и сравнение с бэктестом; бриф `docs/agent-briefs/stage-7-integration.md`.
+- Текущих работ нет: этапы 1–7 закрыты, см. `docs/roadmap.md` и `docs/progress.md`.
 
 ## Закрытые пункты
 
+- [x] Этап 7 — интеграционный прогон и сверка с бэктестом (2026-11-05; ветка
+      `feature/stage-7-integration`; бриф `docs/agent-briefs/stage-7-integration.md`, отчёт
+      `docs/agent-briefs/stage-7-report.md`). Максимальное расхождение с эталоном 18.53%.
 - [x] Этап 6 — отчётность и метрики (2026-11-04; ветка `feature/stage-6-reporting`; бриф
       `docs/agent-briefs/stage-6-reporting.md`, отчёт `docs/agent-briefs/stage-6-report.md`,
       формулы и контракты — `docs/reporting.md`). Коммит `64a2697`.

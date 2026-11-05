@@ -13,17 +13,16 @@
 **REPLAY** (детерминированное воспроизведение — для сверки с бэктестом, целевое расхождение
 метрик < 30%).
 
-Текущий статус: этапы 1–5 завершены (скелет, контракт БКС HTTP MVP — `/api/bks/v1/**`,
+Текущий статус: этапы 1–7 завершены (скелет, контракт БКС HTTP MVP — `/api/bks/v1/**`,
 авторизация refresh→access, заявки, портфель, лимиты, рыночные данные LIVE/RECORD/REPLAY,
-модель исполнения ордеров). Этап 6 реализован — отчётность и метрики (NAV, CAGR/Sharpe/Sortino/
-Max Drawdown/Calmar, FIFO win rate, журнал проскальзывания и комиссий, сверка с бэктестом,
-внутренний API `/api/internal/reports/**`); коммит `64a2697`.
+модель исполнения ордеров, отчётность и метрики, сквозной REPLAY-прогон со сверкой с бэктестом).
 Подробности — [`docs/progress.md`](docs/progress.md) и отчёты этапов
 [`stage-2-report.md`](docs/agent-briefs/stage-2-report.md),
 [`stage-3-report.md`](docs/agent-briefs/stage-3-report.md),
 [`stage-4-report.md`](docs/agent-briefs/stage-4-report.md),
 [`stage-5-report.md`](docs/agent-briefs/stage-5-report.md),
-[`stage-6-report.md`](docs/agent-briefs/stage-6-report.md).
+[`stage-6-report.md`](docs/agent-briefs/stage-6-report.md),
+[`stage-7-report.md`](docs/agent-briefs/stage-7-report.md).
 
 ## Документация
 
@@ -39,8 +38,78 @@ Max Drawdown/Calmar, FIFO win rate, журнал проскальзывания 
 | [`docs/agent-briefs/`](docs/agent-briefs/) | брифы для агентов-реализаторов (этапы 2–7) |
 | [`docs/bcs-api/`](docs/bcs-api/) | полный снапшот контракта БКС Trade API (страницы + JSON-схемы) |
 
-Сборка, запуск и тесты — см. `AGENTS.md` (разделы «Окружение» и «Команды»): сервис на
-http://localhost:8080, health check `GET /actuator/health` (Spring Actuator).
+## Локальный запуск
+
+Требования: JDK 25 и Docker Desktop (PostgreSQL и Testcontainers). Gradle устанавливать не
+нужно — используется wrapper `gradlew`.
+
+### 1. JDK 25
+
+```powershell
+$env:JAVA_HOME = $env:MOEX_JAVA25_HOME   # переменная с путём к JDK 25
+.\gradlew.bat --version                  # Launcher JVM: 25.x
+```
+
+Если `MOEX_JAVA25_HOME` пуст, установите JDK 25 и задайте переменную. Системный `JAVA_HOME`
+может указывать на 17 — сборка берёт toolchain 25, но Gradle/JDK для запуска должны быть не
+ниже 21.
+
+### 2. PostgreSQL 18
+
+```powershell
+$env:DB_PASSWORD = '<пароль>'   # обязателен для docker-compose.yml, в git не хранится
+docker compose up -d
+docker compose ps               # papertrader-postgres: healthy
+```
+
+Порт хоста — `DB_PORT` (по умолчанию 5432); база и пользователь — `papertrader`. Схему при
+старте приложения создаёт Flyway: вручную миграции накатывать не нужно. Остановка —
+`docker compose down` (данные остаются в томе `pgdata`), полная очистка — `docker compose
+down -v`.
+
+### 3. Переменные окружения
+
+| Переменная | Когда нужна | Назначение |
+|---|---|---|
+| `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` | если БД не на `localhost:5432` | подключение к PostgreSQL |
+| `BKS_REFRESH_TOKEN_TRADE` / `BKS_REFRESH_TOKEN_READ` | для вызовов API БКС | refresh-токены эмулятора (write/read-only); без них `/token` вернёт 400 |
+| `ALGO_PACK_TOKEN` | только для `emulator.marketdata.mode=LIVE`/`RECORD` | ключ AlgoPack (только из окружения) |
+
+По умолчанию (`emulator.marketdata.mode=STUB`) сервис работает на встроенной заглушке:
+инструменты и цены берутся из `application.yml`, сеть не требуется.
+
+### 4. Запуск сервиса
+
+```powershell
+.\gradlew.bat bootRun
+```
+
+Сервис — http://localhost:8080 (порт меняется ключом `server.port` или переменной
+`SERVER_PORT`). Проверка:
+
+```powershell
+Invoke-RestMethod http://localhost:8080/actuator/health   # status = UP
+```
+
+API БКС смонтирован под `/api/bks/v1/**`, внутренний API отчётов — `/api/internal/reports/**`.
+Примеры запросов и коды ошибок — [`docs/bcs-api/`](docs/bcs-api/) и
+[`docs/reporting.md`](docs/reporting.md).
+
+### 5. Тесты
+
+Docker обязателен: интеграционные тесты поднимают PostgreSQL 18 через Testcontainers.
+
+```powershell
+.\gradlew.bat test                                        # весь набор
+.\gradlew.bat test --tests "ru.moex.papertrader.it.FullCycleReplayIntegrationTest"
+.\gradlew.bat clean build                                 # DoD: spotlessCheck + тесты + JaCoCo
+```
+
+`LiveSmokeIntegrationTest` ходит в реальный AlgoPack/ISS и по умолчанию пропускается; для
+ручного запуска задайте `ALGO_PACK_TOKEN` (см. раздел «Прогон и сверка с бэктестом»).
+
+Сборка, окружение агента и остальные команды — в `AGENTS.md` (разделы «Окружение» и
+«Команды»).
 
 ## Конфигурация базы данных
 
@@ -119,6 +188,39 @@ Max Drawdown, Calmar, FIFO win rate), журнал сделок с проска�
 | `GET` | `/api/internal/reports/{id}/journal.csv` | CSV-журнал сделок |
 
 Формулы, контракт бэктеста и примеры JSON — [`docs/reporting.md`](docs/reporting.md).
+
+## Прогон и сверка с бэктестом
+
+Сквозной сценарий этапа 7 — `FullCycleReplayIntegrationTest`: детерминированный REPLAY-набор
+(24 торговых дня, SBER/GAZP/SiU6) → HTTP-контракт БКС (`token → orders/sync → portfolio → limits →
+orders/search → trades/search`) → матчинг с проскальзыванием и комиссией → NAV по дням → отчёт
+`/api/internal/reports` → сверка метрик с эталонным бэктестом (`BacktestComparator`, порог 30%).
+
+Эталон — «идеальный» бэктест той же стратегии по ценам стакана без проскальзывания и комиссий;
+он строится из того же набора (`IdealBacktest`) и передаётся в отчёт блоком `backtest.metrics`.
+Данные набора пишутся в PostgreSQL до создания провайдера рыночных данных (`ReplaySeedSupport`),
+часы — только `VirtualClock`, поэтому прогон воспроизводим.
+
+```powershell
+# Требуется Docker (Testcontainers PostgreSQL 18)
+./gradlew test --tests "ru.moex.papertrader.it.FullCycleReplayIntegrationTest"
+```
+
+Результаты прогона:
+
+- отчёт — `build/reports/test/stage7/report-<id>.json` и `report-<id>-journal.csv`
+(каталог `emulator.reporting.output-dir`);
+- сводка расхождений текущего прогона — `build/reports/test/stage7/divergence.json`;
+- контрольный прогон и допущения — [`docs/agent-briefs/stage-7-report.md`](docs/agent-briefs/stage-7-report.md).
+
+`LiveSmokeIntegrationTest` (тег `live`) ходит в реальный AlgoPack/ISS и по умолчанию пропускается:
+он запускается только при заданном `ALGO_PACK_TOKEN` и требует сети и Docker.
+
+```powershell
+$env:ALGO_PACK_TOKEN = '<ключ>'
+./gradlew test --tests "ru.moex.papertrader.it.LiveSmokeIntegrationTest"
+```
+
 
 ## Разработка с AI-агентами
 
