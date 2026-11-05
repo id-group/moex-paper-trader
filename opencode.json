@@ -44,7 +44,6 @@
     "auto": true,
     "keep": {
       "tokens": 12000
-    },
-    "buffer": "15%"
+    }
   }
 }
