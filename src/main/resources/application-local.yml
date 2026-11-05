@@ -1,8 +1,6 @@
 # Локальный профиль запуска (IDE / bootRun).
 #
-# Активация:
-#   spring.profiles.active=local
-#   spring.config.additional-location=file:./local/
+# Активация: spring.profiles.active=local (файл лежит рядом с application.yml в classpath).
 #
 # Профиль задаёт параметры PostgreSQL из local/docker-compose.yml и закрывает «неопределённые»
 # переменные окружения значениями по умолчанию: без BKS_REFRESH_TOKEN_* и ALGO_PACK_TOKEN

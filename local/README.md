@@ -6,7 +6,7 @@
 | Файл | Назначение |
 |---|---|
 | `docker-compose.yml` | PostgreSQL 18 (`papertrader` / `papertrader`, порт 5433, том `pgdata`) |
-| `application-local.yml` | профиль `local`: datasource, режим STUB, локальные refresh-токены БКС |
+| `../src/main/resources/application-local.yml` | профиль `local`: datasource, режим STUB, локальные refresh-токены БКС |
 
 ## 1. Поднять базу
 
@@ -31,16 +31,14 @@ PostgreSQL; приложение в профиле `local` смотрит име
 
 ## 2. Запуск из IntelliJ IDEA
 
+Профиль лежит в `src/main/resources/application-local.yml` рядом с `application.yml`, поэтому
+дополнительные пути конфигурации указывать не нужно.
+
 1. **Run → Edit Configurations… → + → Spring Boot** (или `Application`).
 2. Main class: `ru.moex.papertrader.BrokerEmulatorApplication`.
 3. Working directory: корень проекта (`$PROJECT_DIR$`).
 4. **Active profiles**: `local`.
-5. **VM options** (Modify options → Add VM options):
-   `-Dspring.config.additional-location=file:./local/`
-
-   Для обычной `Application`-конфигурации те же значения можно передать program arguments:
-   `--spring.profiles.active=local --spring.config.additional-location=file:./local/`
-6. Запуск. Сервис — http://localhost:18080, health —
+5. Запуск. Сервис — http://localhost:18080, health —
    `Invoke-RestMethod http://localhost:18080/actuator/health`.
 
 Порт 18080 выбран для профиля `local`, потому что 8080 на машине может быть занят или
@@ -53,8 +51,11 @@ PostgreSQL; приложение в профиле `local` смотрит име
 ## 3. Запуск из терминала
 
 ```powershell
-.\gradlew.bat bootRun --args="--spring.profiles.active=local --spring.config.additional-location=file:./local/"
+$env:SPRING_PROFILES_ACTIVE = 'local'
+.\gradlew.bat bootRun
 ```
+
+или одной строкой: `.\gradlew.bat bootRun --args="--spring.profiles.active=local"`.
 
 ## 4. Проверка API
 

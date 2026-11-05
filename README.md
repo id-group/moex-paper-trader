@@ -37,7 +37,7 @@
 | [`docs/reporting.md`](docs/reporting.md) | формулы метрик, журнал сделок, контракт бэктеста и внутренний API отчётов |
 | [`docs/agent-briefs/`](docs/agent-briefs/) | брифы для агентов-реализаторов (этапы 2–7) |
 | [`docs/bcs-api/`](docs/bcs-api/) | полный снапшот контракта БКС Trade API (страницы + JSON-схемы) |
-| [`local/`](local/README.md) | локальный запуск: PostgreSQL 18 в Docker и профиль Spring `local` для IDE |
+| [`local/`](local/README.md) | локальный PostgreSQL 18 в Docker; профиль Spring `local` — `src/main/resources/application-local.yml` |
 
 ## Локальный запуск
 
@@ -81,22 +81,19 @@ docker compose -f local/docker-compose.yml ps     # papertrader-local-postgres: 
 
 ### 4. Запуск сервиса
 
-Для IDE и локальной разработки есть готовый профиль `local` — каталог
-[`local/`](local/README.md): `application-local.yml` с параметрами БД и локальными
-refresh-токенами БКС.
+Для IDE и локальной разработки есть готовый профиль `local`:
+`src/main/resources/application-local.yml` (рядом с `application.yml`) с параметрами БД и
+локальными refresh-токенами БКС; PostgreSQL поднимается из [`local/`](local/README.md).
 
 **IntelliJ IDEA:** Run → Edit Configurations… → Spring Boot (или Application), main class
 `ru.moex.papertrader.BrokerEmulatorApplication`, рабочая папка — корень проекта,
-**Active profiles** = `local`, VM options:
-
-```text
--Dspring.config.additional-location=file:./local/
-```
+**Active profiles** = `local`. Дополнительные пути конфигурации не нужны.
 
 **Терминал:**
 
 ```powershell
-.\gradlew.bat bootRun --args="--spring.profiles.active=local --spring.config.additional-location=file:./local/"
+$env:SPRING_PROFILES_ACTIVE = 'local'
+.\gradlew.bat bootRun
 ```
 
 Без профиля `local` приложение возьмёт значения по умолчанию из
