@@ -190,6 +190,28 @@ class AlgoPackClientTest {
   }
 
   @Test
+  void worksWhenAdditionalTrustStoreConfigured() {
+    server.route("/securities/SBER.json", ok(AlgoApiFixtures.read(QUOTE_FIXTURE)));
+
+    // TLS-хранилище не используется для plain-HTTP тестового сервера, но клиент обязан собраться
+    AlgoPackProperties properties =
+        new AlgoPackProperties(
+            server.baseUrl(),
+            "test-token",
+            2_000,
+            2_000,
+            2,
+            10,
+            "stock",
+            "shares",
+            "TQBR",
+            "classpath:truststore/moex-russian-trusted.jks",
+            "changeit");
+
+    assertThat(client(properties).quote("SBER").secId()).isEqualTo("SBER");
+  }
+
+  @Test
   void invalidJsonBecomesAlgoApiException() {
     server.route("/securities/SBER.json", new Response(200, "not a json"));
 
@@ -204,7 +226,7 @@ class AlgoPackClientTest {
 
   private AlgoPackProperties properties(String token, int readTimeoutMs) {
     return new AlgoPackProperties(
-        server.baseUrl(), token, 2_000, readTimeoutMs, 2, 10, "stock", "shares", "TQBR");
+        server.baseUrl(), token, 2_000, readTimeoutMs, 2, 10, "stock", "shares", "TQBR", "", "");
   }
 
   private static Response ok(String body) {

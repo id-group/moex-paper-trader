@@ -43,7 +43,7 @@ class AlgoPackProviderHttpTest {
 
     AlgoPackProperties algoPackProperties =
         new AlgoPackProperties(
-            server.baseUrl(), "token", 2_000, 2_000, 0, 0, "stock", "shares", "TQBR");
+            server.baseUrl(), "token", 2_000, 2_000, 0, 0, "stock", "shares", "TQBR", "", "");
     IssProperties issProperties =
         new IssProperties(server.baseUrl(), 2_000, 2_000, 0, 0, "stock", "shares", "TQBR");
     provider =

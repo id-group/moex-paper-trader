@@ -26,7 +26,8 @@ class AlgoApiPropertiesTest {
   @Test
   void nullTokenBecomesEmptyString() {
     AlgoPackProperties properties =
-        new AlgoPackProperties("http://localhost", null, 100, 100, 0, 0, "stock", "shares", "TQBR");
+        new AlgoPackProperties(
+            "http://localhost", null, 100, 100, 0, 0, "stock", "shares", "TQBR", "", "");
 
     assertThat(properties.token()).isEmpty();
   }
@@ -36,17 +37,17 @@ class AlgoApiPropertiesTest {
     assertThatThrownBy(
             () ->
                 new AlgoPackProperties(
-                    "http://localhost", "", 0, 100, 0, 0, "stock", "shares", "TQBR"))
+                    "http://localhost", "", 0, 100, 0, 0, "stock", "shares", "TQBR", "", ""))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("connectTimeoutMs");
     assertThatThrownBy(
             () ->
                 new AlgoPackProperties(
-                    "http://localhost", "", 100, 100, -1, 0, "stock", "shares", "TQBR"))
+                    "http://localhost", "", 100, 100, -1, 0, "stock", "shares", "TQBR", "", ""))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("maxRetries");
     assertThatThrownBy(
-            () -> new AlgoPackProperties("", "", 100, 100, 0, 0, "stock", "shares", "TQBR"))
+            () -> new AlgoPackProperties("", "", 100, 100, 0, 0, "stock", "shares", "TQBR", "", ""))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("baseUrl");
   }

@@ -34,7 +34,7 @@ emulator:
   # Для локального запуска сеть не нужна: встроенная заглушка инструментов и котировок.
   # Для LIVE/RECORD задайте emulator.marketdata.mode и ALGO_PACK_TOKEN.
   marketdata:
-    mode: ${EMULATOR_MARKETDATA_MODE:STUB}
+    mode: ${EMULATOR_MARKETDATA_MODE:LIVE}
   execution:
     scheduler-enabled: true
   reporting:
@@ -50,8 +50,6 @@ emulator:
         refresh-tokens:
           - token: ${BKS_REFRESH_TOKEN_TRADE:local-trade-refresh-token}
             client-id: trade-api-write
-          - token: ${BKS_REFRESH_TOKEN_READ:local-read-refresh-token}
-            client-id: trade-api-read
 
 logging:
   level:

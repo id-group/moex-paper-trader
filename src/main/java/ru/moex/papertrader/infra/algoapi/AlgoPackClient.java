@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.net.ssl.SSLContext;
 import org.springframework.web.client.RestClient;
 import ru.moex.papertrader.infra.algoapi.dto.AlgoPackCandleDto;
 import ru.moex.papertrader.infra.algoapi.dto.AlgoPackOrderBookDto;
@@ -48,6 +49,11 @@ public class AlgoPackClient {
         properties.token().isBlank()
             ? Map.of()
             : Map.of(AUTH_HEADER, BEARER_PREFIX + properties.token());
+    SSLContext sslContext =
+        properties.trustStorePath().isBlank()
+            ? null
+            : TrustStoreSslContexts.fromTrustStore(
+                properties.trustStorePath(), properties.trustStorePassword());
     this.http =
         new JsonHttpClient(
             builder,
@@ -57,7 +63,8 @@ public class AlgoPackClient {
             properties.maxRetries(),
             properties.retryDelayMs(),
             "AlgoPack",
-            headers);
+            headers,
+            sslContext);
     this.pathPrefix =
         "/iss/engines/"
             + properties.engine()

@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.net.ssl.SSLContext;
 import org.springframework.web.client.RestClient;
 import ru.moex.papertrader.infra.algoapi.dto.IssCandleDto;
 import ru.moex.papertrader.infra.algoapi.dto.IssOrderBookDto;
@@ -35,6 +36,7 @@ public class IssClient {
   /** Клиент с собственным {@link RestClient.Builder}; удобно для Spring-сборки. */
   public IssClient(RestClient.Builder builder, IssProperties properties) {
     Objects.requireNonNull(properties, "properties");
+    SSLContext sslContext = null; // ISS доверяет стандартным корням JVM
     this.http =
         new JsonHttpClient(
             builder,
@@ -44,7 +46,8 @@ public class IssClient {
             properties.maxRetries(),
             properties.retryDelayMs(),
             "MOEX ISS",
-            Map.of());
+            Map.of(),
+            sslContext);
   }
 
   /** Клиент со стандартным построителем RestClient. */

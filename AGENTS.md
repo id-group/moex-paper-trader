@@ -63,6 +63,7 @@
 
 Загружай профильный skill перед соответствующей работой: `bcs-contract`, `bcs-portfolio`, `marketdata-modes`, `execution-model`, `java-conventions`, `testing`.
 
+- Serena (MCP, инструменты `initial_instructions`/`serena_repl`) — символьная навигация и рефакторинг по кодовой базе. Перед задачей на код читай инструкции (`initial_instructions`), затем используй `s.lsp.find_symbol`, `get_symbols_overview`, `find_referencing_symbols` вместо чтения целых файлов и grep'а; тела читай точечно (`include_body=True` только для нужных символов). Первый запуск в сессии может занимать минуты (старт jdtls).
 - `/precommit` — перед каждым коммитом; делегирует `spotlessCheck` и тесты субагенту `precommit-checker` на дешёвой модели, основная сессия сохраняет краткий отчёт и исправляет найденные проблемы. Покрытие и чистота git обязательны.
 - `/tdd <задача>` — red → green → refactor; `/coverage [пакет]` — JaCoCo; `/finish-stage N` — закрытие этапа и обновление прогресса.
 - Документация библиотек и платформ: Context7 (`resolve-library-id`, затем `query-docs`), когда задача зависит от их API/версий.

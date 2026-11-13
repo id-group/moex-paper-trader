@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -42,15 +43,19 @@ final class JsonHttpClient {
       int maxRetries,
       long retryDelayMs,
       String apiName,
-      Map<String, String> headers) {
+      Map<String, String> headers,
+      SSLContext sslContext) {
     Objects.requireNonNull(builder, "builder");
     Objects.requireNonNull(baseUrl, "baseUrl");
-    HttpClient httpClient =
+    HttpClient.Builder httpClientBuilder =
         HttpClient.newBuilder()
             .connectTimeout(Duration.ofMillis(connectTimeoutMs))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
-    JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+            .followRedirects(HttpClient.Redirect.NORMAL);
+    if (sslContext != null) {
+      httpClientBuilder.sslContext(sslContext);
+    }
+    JdkClientHttpRequestFactory requestFactory =
+        new JdkClientHttpRequestFactory(httpClientBuilder.build());
     requestFactory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
     this.restClient = builder.baseUrl(baseUrl).requestFactory(requestFactory).build();
     this.maxRetries = maxRetries;

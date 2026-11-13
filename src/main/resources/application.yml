@@ -126,10 +126,14 @@ emulator:
           base-price: 90000
   # HTTP-клиенты рыночных данных (этап 4). Токен AlgoPack — только env, никогда в конфиг.
   algoapi:
-    base-url: https://algo-api.moex.com
+    base-url: https://apim.moex.com
     token: ${ALGO_PACK_TOKEN:}
     connect-timeout-ms: 2000
     read-timeout-ms: 5000
+    # Дополнительное хранилище доверенных корней (JKS, публичные сертификаты): apim.moex.com
+    # использует национальный УЦ Минцифры, которого нет в cacerts JVM (PKIX path building failed)
+    trust-store-path: classpath:truststore/moex-russian-trusted.jks
+    trust-store-password: ${ALGO_TRUST_STORE_PASSWORD:changeit}
     max-retries: 2
     retry-delay-ms: 500
     engine: stock

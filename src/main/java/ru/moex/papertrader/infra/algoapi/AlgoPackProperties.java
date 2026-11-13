@@ -14,6 +14,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * (moexalgo.github.io) публичный шлюз указан как {@code https://apim.moex.com}, поэтому значение
  * переопределяется конфигурацией.
  *
+ * <p>Шлюз использует сертификат национального УЦ Минцифры («Russian Trusted Root CA»), которого нет
+ * в {@code cacerts} JVM. Дополнительное хранилище доверенных сертификатов задаётся парой {@code
+ * trustStorePath}/{@code trustStorePassword}; пустой путь — только стандартные корни JVM.
+ *
  * @param baseUrl базовый адрес API
  * @param token токен доступа AlgoPack (пустая строка — без авторизации)
  * @param connectTimeoutMs таймаут установления соединения, мс
@@ -23,6 +27,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param engine код торговой системы ISS (по умолчанию {@code stock})
  * @param market код рынка ISS (по умолчанию {@code shares})
  * @param board режим торгов ISS (по умолчанию {@code TQBR})
+ * @param trustStorePath {@code classpath:...} или файловый путь к JKS/PKCS12 с доверенными корнями
+ * @param trustStorePassword пароль хранилища
  */
 @ConfigurationProperties(prefix = "emulator.algoapi")
 public record AlgoPackProperties(
@@ -34,7 +40,9 @@ public record AlgoPackProperties(
     long retryDelayMs,
     String engine,
     String market,
-    String board) {
+    String board,
+    String trustStorePath,
+    String trustStorePassword) {
 
   /** Адрес API AlgoPack по умолчанию. */
   public static final String DEFAULT_BASE_URL = "https://algo-api.moex.com";
@@ -45,6 +53,8 @@ public record AlgoPackProperties(
     engine = requireText(engine, "engine");
     market = requireText(market, "market");
     board = requireText(board, "board");
+    trustStorePath = trustStorePath == null ? "" : trustStorePath;
+    trustStorePassword = trustStorePassword == null ? "" : trustStorePassword;
     if (connectTimeoutMs <= 0) {
       throw new IllegalArgumentException("connectTimeoutMs должен быть положительным");
     }
@@ -62,7 +72,7 @@ public record AlgoPackProperties(
   /** Настройки по умолчанию для акций основного режима TQBR. */
   public static AlgoPackProperties defaults() {
     return new AlgoPackProperties(
-        DEFAULT_BASE_URL, "", 2_000, 5_000, 2, 500, "stock", "shares", "TQBR");
+        DEFAULT_BASE_URL, "", 2_000, 5_000, 2, 500, "stock", "shares", "TQBR", "", "");
   }
 
   private static String requireText(String value, String name) {
