@@ -26,7 +26,7 @@ import ru.moex.papertrader.infra.services.OrderService;
 
 /** Заявки БКС: создание, отмена, статус и поиск (sync и async варианты). */
 @RestController
-@RequestMapping("${emulator.brokers.bks.base-path:/api/bks}/v1")
+@RequestMapping({"${emulator.brokers.bks.base-path:/api/bks}/v1", BksContractPaths.API_V1_PREFIX})
 public class BksOrderController {
 
   private final OrderService orderService;

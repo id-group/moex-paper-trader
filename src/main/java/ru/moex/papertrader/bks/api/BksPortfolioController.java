@@ -12,7 +12,7 @@ import ru.moex.papertrader.infra.services.PortfolioService;
 
 /** Портфель и лимиты БКС. */
 @RestController
-@RequestMapping("${emulator.brokers.bks.base-path:/api/bks}/v1")
+@RequestMapping({"${emulator.brokers.bks.base-path:/api/bks}/v1", BksContractPaths.API_V1_PREFIX})
 public class BksPortfolioController {
 
   private final PortfolioService portfolioService;

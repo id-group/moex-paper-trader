@@ -51,7 +51,9 @@ public class BksAuthenticationFilter extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
-    return !request.getRequestURI().startsWith(basePath() + "/v1/");
+    String uri = request.getRequestURI();
+    return !uri.startsWith(basePath() + "/v1/")
+        && !uri.startsWith(BksContractPaths.API_V1_PREFIX + "/");
   }
 
   @Override
@@ -86,8 +88,23 @@ public class BksAuthenticationFilter extends OncePerRequestFilter {
     if (!"POST".equalsIgnoreCase(request.getMethod())) {
       return false;
     }
-    String path = request.getRequestURI().substring(basePath().length());
-    return TRADE_ONLY_PATHS.contains(path);
+    return TRADE_ONLY_PATHS.contains(normalizePath(request.getRequestURI()));
+  }
+
+  /**
+   * Снимает известный префикс (изолированный base-path или боевой {@code /api/v1}) и возвращает
+   * путь вида {@code /v1/...}: проверка прав не зависит от того, по какому префиксу пришёл запрос.
+   */
+  private String normalizePath(String uri) {
+    String base = basePath();
+    if (uri.startsWith(base + "/")) {
+      return uri.substring(base.length());
+    }
+    if (uri.startsWith(BksContractPaths.API_V1_PREFIX + "/")) {
+      // /api/v1/x -> /v1/x: боевой префикс уже содержит /v1
+      return uri.substring("/api".length());
+    }
+    return uri;
   }
 
   private String basePath() {

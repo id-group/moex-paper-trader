@@ -17,7 +17,7 @@ import ru.moex.papertrader.infra.services.TradeService;
 
 /** Сделки БКС: поиск. */
 @RestController
-@RequestMapping("${emulator.brokers.bks.base-path:/api/bks}/v1")
+@RequestMapping({"${emulator.brokers.bks.base-path:/api/bks}/v1", BksContractPaths.API_V1_PREFIX})
 public class BksTradeController {
 
   private final TradeService tradeService;

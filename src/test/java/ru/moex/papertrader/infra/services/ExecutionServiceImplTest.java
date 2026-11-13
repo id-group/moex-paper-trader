@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -40,6 +41,8 @@ import ru.moex.papertrader.core.marketdata.Clock;
 import ru.moex.papertrader.core.marketdata.MarketDataProvider;
 import ru.moex.papertrader.core.marketdata.OrderBookSnapshot;
 import ru.moex.papertrader.core.marketdata.TradingSession;
+import ru.moex.papertrader.infra.repository.TradingCalendarRepository;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Жизненный цикл исполнения: экспирация, отказ, снятие маркет-остатка и ошибки fill. */
 @ExtendWith(MockitoExtension.class)
@@ -269,6 +272,30 @@ class ExecutionServiceImplTest {
   }
 
   @Test
+  void tickExecutesDayOrderWhenCalendarIsEmptyButTimeInsideFallbackWindow() {
+    // Регресс E2E-07: в LIVE с пустым календарём торговая сессия определяется fallback-окном
+    // настроек (будний день 10:00–18:50 МСК), DAY-заявка не экспайрится на первом тике.
+    TradingCalendarRepository repository = mock(TradingCalendarRepository.class);
+    TradingCalendarService emptyCalendar =
+        new TradingCalendarService(repository, MarketDataProperties.defaults(), jsonMapper());
+    lenient()
+        .when(marketDataProvider.tradingSession(NOW))
+        .thenAnswer(invocation -> emptyCalendar.tradingSession(NOW));
+    Order day = order(OrderType.LIMIT, TimeInForce.DAY, 10, "285.50");
+    OrderBookSnapshot book = book();
+    lenient().when(orderService.activeOrders()).thenReturn(List.of(day));
+    lenient().when(orderService.get(OrderIdType.EXCHANGE, day.orderId())).thenReturn(day);
+    lenient().when(marketDataProvider.orderBook(day.instrument(), 10)).thenReturn(book);
+    lenient().when(marketDataProvider.adv(day.instrument())).thenReturn(ADV);
+    lenient().when(matchingEngine.match(day, book, ADV)).thenReturn(MatchResult.none());
+
+    int processed = service.tick();
+
+    assertThat(processed).isEqualTo(1);
+    verify(orderService, never()).expire(any(), anyString());
+  }
+
+  @Test
   void tickSkipsFokOutsideSessionWithoutRejectingIt() {
     Order fok = order(OrderType.LIMIT, TimeInForce.FILL_OR_KILL, 10, "285.50");
     when(marketDataProvider.tradingSession(NOW)).thenReturn(CLOSED);
@@ -369,6 +396,10 @@ class ExecutionServiceImplTest {
 
   private static MatchResult fills(MatchFill fill) {
     return new MatchResult(List.of(fill), MatchResult.RemainderAction.KEEP, null);
+  }
+
+  private static JsonMapper jsonMapper() {
+    return JsonMapper.builder().build();
   }
 
   private static OrderBookSnapshot book() {

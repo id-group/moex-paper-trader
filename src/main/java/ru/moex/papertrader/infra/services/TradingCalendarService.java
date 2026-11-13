@@ -1,5 +1,6 @@
 package ru.moex.papertrader.infra.services;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -49,7 +50,14 @@ import tools.jackson.databind.ObjectMapper;
  *
  * <p>Кэш: если все даты диапазона уже есть в БД, HTTP не вызывается. Дни после последней даты с
  * опубликованной историей ISS не кэшируются как неторговые: история за текущий день появляется
- * только после закрытия, и такая запись навсегда закрыла бы день в календаре.
+ * только после закрытия, и такая запись навсегда закрыла бы день в календаре. Вместо этого день
+ * проверяется по живым минутным свечам: свечи есть — день кэшируется как торговый с границами
+ * биржи, нет — остаётся некэшированным.
+ *
+ * <p>День, отсутствующий в БД (LIVE до первой синхронизации), не считается автоматически
+ * неторговым: {@link #tradingSession(Instant)} применяет fallback-окно настроек {@code
+ * session-open}/{@code session-close} для будних дней, как это делает {@code tradingDay()} при
+ * недоступности ISS. Праздничные будни без записи в БД fallback не отличит от обычных.
  *
  * <p>Сервис не использует системные часы: все моменты времени приходят параметрами.
  */
@@ -134,10 +142,49 @@ public class TradingCalendarService implements TradingCalendar {
           return new TradingSession(SESSION_ID, SESSION_NAME, false, day.openUtc());
         }
       }
+      return closedSession(date);
     }
-    Instant nextSessionAt = nextTradingDay(date).map(TradingDay::openUtc).orElse(null);
-    return new TradingSession(
-        SESSION_ID, SESSION_NAME, false, nextSessionAt != null ? nextSessionAt : at);
+    // День в БД неизвестен (LIVE до первой синхронизации календаря): будний день считается
+    // торговым с fallback-окном настроек — как в tradingDay() и StubMarketDataProvider.
+    if (isWeekday(date)) {
+      Instant openUtc = fallbackOpen(date);
+      Instant closeUtc = date.atTime(properties.sessionClose()).atZone(MOSCOW).toInstant();
+      if (!at.isBefore(openUtc) && !at.isAfter(closeUtc)) {
+        return new TradingSession(SESSION_ID, SESSION_NAME, true, closeUtc);
+      }
+      if (at.isBefore(openUtc)) {
+        return new TradingSession(SESSION_ID, SESSION_NAME, false, openUtc);
+      }
+    }
+    return closedSession(date);
+  }
+
+  private TradingSession closedSession(LocalDate date) {
+    Instant nextAt =
+        nextTradingDay(date).map(TradingDay::openUtc).orElseGet(() -> nextWeekdayOpen(date));
+    return new TradingSession(SESSION_ID, SESSION_NAME, false, nextAt);
+  }
+
+  /** Открытие следующего буднего дня по fallback-окну настроек (UTC). */
+  private Instant nextWeekdayOpen(LocalDate date) {
+    LocalDate next = date.plusDays(1);
+    while (isWeekend(next)) {
+      next = next.plusDays(1);
+    }
+    return fallbackOpen(next);
+  }
+
+  private Instant fallbackOpen(LocalDate date) {
+    return date.atTime(properties.sessionOpen()).atZone(MOSCOW).toInstant();
+  }
+
+  private static boolean isWeekday(LocalDate date) {
+    return !isWeekend(date);
+  }
+
+  private static boolean isWeekend(LocalDate date) {
+    DayOfWeek dayOfWeek = date.getDayOfWeek();
+    return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY;
   }
 
   private List<TradingCalendarEntity> loadRange(LocalDate from, LocalDate to) {
@@ -186,20 +233,39 @@ public class TradingCalendarService implements TradingCalendar {
       }
       boolean trading = tradingDates.contains(date);
       if (!trading && date.isAfter(lastTraded)) {
+        // История ISS не знает день (обычно текущий — она публикуется только после закрытия).
+        // Спрашиваем живые минутные свечи: свечи есть — день торговый, кэшируем с границами
+        // биржи; свечей нет — день не кэшируем, статус определит fallback-окно настроек.
+        cacheLiveDay(date, known);
         continue;
       }
       TradingDay day = trading ? tradingDay(date) : new TradingDay(date, false, null, null);
-      calendar.upsert(
-          properties.calendarEngine(),
-          properties.calendarMarket(),
-          properties.calendarBoard(),
-          date,
-          day.trading(),
-          day.openUtc(),
-          day.closeUtc());
+      upsertDay(date, day);
       known.put(date, day);
     }
     return true;
+  }
+
+  /** Кэширует день как торговый, если по нему уже есть минутные свечи (торги идут). */
+  private void cacheLiveDay(LocalDate date, Map<LocalDate, TradingDay> known) {
+    Optional<SessionBounds> bounds = fetchSessionBounds(date);
+    if (bounds.isEmpty()) {
+      return;
+    }
+    TradingDay day = new TradingDay(date, true, bounds.get().openUtc(), bounds.get().closeUtc());
+    upsertDay(date, day);
+    known.put(date, day);
+  }
+
+  private void upsertDay(LocalDate date, TradingDay day) {
+    calendar.upsert(
+        properties.calendarEngine(),
+        properties.calendarMarket(),
+        properties.calendarBoard(),
+        date,
+        day.trading(),
+        day.openUtc(),
+        day.closeUtc());
   }
 
   /** Торговый день с окном сессии из данных биржи; при недоступности — fallback на настройки. */

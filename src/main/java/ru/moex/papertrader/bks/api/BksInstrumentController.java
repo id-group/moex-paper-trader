@@ -16,7 +16,7 @@ import ru.moex.papertrader.infra.services.exception.InvalidRequestException;
 
 /** Справочник инструментов и статус торгов БКС. */
 @RestController
-@RequestMapping("${emulator.brokers.bks.base-path:/api/bks}/v1")
+@RequestMapping({"${emulator.brokers.bks.base-path:/api/bks}/v1", BksContractPaths.API_V1_PREFIX})
 public class BksInstrumentController {
 
   private final MarketDataProvider marketDataProvider;

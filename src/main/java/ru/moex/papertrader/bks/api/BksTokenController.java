@@ -23,9 +23,10 @@ public class BksTokenController {
   }
 
   @PostMapping(
-      path =
-          "${emulator.brokers.bks.base-path:/api/bks}/trade-api-keycloak/realms/tradeapi/"
-              + "protocol/openid-connect/token",
+      path = {
+        "${emulator.brokers.bks.base-path:/api/bks}" + BksContractPaths.TOKEN_PATH,
+        BksContractPaths.TOKEN_PATH
+      },
       consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
   public ResponseEntity<Object> token(
       @RequestParam(name = "client_id", required = false) String clientId,

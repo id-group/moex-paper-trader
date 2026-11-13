@@ -26,7 +26,7 @@ import ru.moex.papertrader.infra.services.exception.ResourceNotFoundException;
 
 /** Рыночные данные БКС: котировки, стакан и свечи (заглушка этапа 2). */
 @RestController
-@RequestMapping("${emulator.brokers.bks.base-path:/api/bks}/v1")
+@RequestMapping({"${emulator.brokers.bks.base-path:/api/bks}/v1", BksContractPaths.API_V1_PREFIX})
 public class BksMarketDataController {
 
   private static final int MAX_INSTRUMENTS_PER_QUOTES = 100;

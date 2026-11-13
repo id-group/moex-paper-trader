@@ -152,6 +152,8 @@ emulator:
   brokers:
     bks:
       # Префикс монтирования API брокера: контрактный /api/v1/x -> /api/bks/v1/x.
+      # Боевые пути контракта открыты параллельно как алиасы: бизнес-операции /api/v1/**,
+      # токен у корня /trade-api-keycloak/** (см. BksContractPaths, README).
       base-path: /api/bks
       auth:
         access-token-ttl: 24h

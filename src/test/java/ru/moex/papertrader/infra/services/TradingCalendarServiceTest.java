@@ -63,8 +63,12 @@ class TradingCalendarServiceTest {
           respond(exchange, historyFixture);
         });
     // Минутные свечи: запрос по дате отдаёт открытие дня, запрос с 18:00 — вечерний хвост.
+    // Фикстуры привязаны к 2026-10-30 и 2026-11-02; остальные даты отдаём без свечей.
     byte[] openFixture = fixture("candles_minute_open.json");
     byte[] closeFixture = fixture("candles_minute_close.json");
+    byte[] emptyCandles =
+        "{\"candles\":{\"columns\":[\"begin\",\"end\"],\"data\":[]}}"
+            .getBytes(StandardCharsets.UTF_8);
     server.createContext(
         "/iss/engines/stock/markets/shares/boards/TQBR/securities/SBER/candles.json",
         exchange -> {
@@ -72,7 +76,13 @@ class TradingCalendarServiceTest {
           String query =
               java.net.URLDecoder.decode(
                   exchange.getRequestURI().getRawQuery(), StandardCharsets.UTF_8);
-          respond(exchange, query.contains("18:00:00") ? closeFixture : openFixture);
+          boolean hasCandles =
+              query.contains("from=2026-10-30") || query.contains("from=2026-11-02");
+          if (!hasCandles) {
+            respond(exchange, emptyCandles);
+          } else {
+            respond(exchange, query.contains("18:00:00") ? closeFixture : openFixture);
+          }
         });
     server.start();
     repository = mock(TradingCalendarRepository.class);
@@ -123,8 +133,9 @@ class TradingCalendarServiceTest {
         service.tradingDays(
             Instant.parse("2026-10-28T00:00:00Z"), Instant.parse("2026-10-31T20:00:00Z"));
 
-    // Один запрос истории + по два запроса свечей (открытие/закрытие) на каждый новый день.
-    assertThat(httpRequests).hasValue(5);
+    // Один запрос истории + по два запроса свечей (открытие/закрытие) на 29-е, 30-е
+    // и живую проверку 31-го (после последней даты истории ISS).
+    assertThat(httpRequests).hasValue(7);
     assertThat(days)
         .extracting(TradingDay::date)
         .containsExactly(
@@ -278,20 +289,78 @@ class TradingCalendarServiceTest {
   }
 
   @Test
-  void emptyCalendarReturnsClosedSessionWithoutNextSession() {
-    Instant at = Instant.parse("2026-11-02T10:00:00Z");
-    when(repository.findByEngineAndMarketAndBoardAndTradeDate(
-            eq(ENGINE), eq(MARKET), eq(BOARD), eq(LocalDate.of(2026, 11, 2))))
-        .thenReturn(Optional.empty());
-    when(repository
-            .findTopByEngineAndMarketAndBoardAndTradeDateGreaterThanAndTradingTrueOrderByTradeDateAsc(
-                eq(ENGINE), eq(MARKET), eq(BOARD), eq(LocalDate.of(2026, 11, 2))))
-        .thenReturn(Optional.empty());
+  void unknownWeekdayInsideConfiguredWindowReturnsOpenFallbackSession() {
+    // Пустой календарь (LIVE до первой синхронизации): будний день внутри окна настроек открыт.
+    TradingSession session = service.tradingSession(Instant.parse("2026-11-02T10:00:00Z"));
 
-    TradingSession session = service.tradingSession(at);
+    assertThat(session.open()).isTrue();
+    assertThat(session.id()).isEqualTo(1);
+    assertThat(session.nextSessionAt()).isEqualTo(Instant.parse("2026-11-02T15:50:00Z"));
+  }
+
+  @Test
+  void unknownWeekdayBeforeOpenPointsToConfiguredOpen() {
+    TradingSession session = service.tradingSession(Instant.parse("2026-11-02T03:00:00Z"));
 
     assertThat(session.open()).isFalse();
-    assertThat(session.nextSessionAt()).isEqualTo(at);
+    assertThat(session.nextSessionAt()).isEqualTo(Instant.parse("2026-11-02T07:00:00Z"));
+  }
+
+  @Test
+  void unknownWeekdayAfterClosePointsToNextWeekdayOpen() {
+    TradingSession session = service.tradingSession(Instant.parse("2026-11-02T17:00:00Z"));
+
+    assertThat(session.open()).isFalse();
+    assertThat(session.nextSessionAt()).isEqualTo(Instant.parse("2026-11-03T07:00:00Z"));
+  }
+
+  @Test
+  void unknownWeekendReturnsClosedSessionWithNextWeekdayOpen() {
+    TradingSession session = service.tradingSession(Instant.parse("2026-10-31T10:00:00Z"));
+
+    assertThat(session.open()).isFalse();
+    assertThat(session.nextSessionAt()).isEqualTo(Instant.parse("2026-11-02T07:00:00Z"));
+  }
+
+  @Test
+  void dayAfterLastTradedDateWithLiveCandlesIsCachedAsTrading() {
+    // 2-е позже последней даты истории ISS, но минутные свечи дня уже существуют
+    // (торги идут): день кэшируется как торговый с границами из свечей.
+    when(repository.findByEngineAndMarketAndBoardAndTradeDateBetweenOrderByTradeDate(
+            eq(ENGINE), eq(MARKET), eq(BOARD), any(), any()))
+        .thenReturn(List.of());
+    when(repository.upsert(any(), any(), any(), any(), anyBoolean(), any(), any())).thenReturn(1);
+
+    List<TradingDay> days =
+        service.tradingDays(
+            Instant.parse("2026-11-02T00:00:00Z"), Instant.parse("2026-11-02T20:00:00Z"));
+
+    assertThat(days).extracting(TradingDay::trading).containsExactly(true);
+    verify(repository)
+        .upsert(
+            eq(ENGINE),
+            eq(MARKET),
+            eq(BOARD),
+            eq(LocalDate.of(2026, 11, 2)),
+            eq(true),
+            any(),
+            any());
+  }
+
+  @Test
+  void dayAfterLastTradedDateWithoutCandlesIsNotCached() {
+    // Будущие дни (сб/вс) без свечей: не кэшируются — статус дня решает fallback-окно.
+    when(repository.findByEngineAndMarketAndBoardAndTradeDateBetweenOrderByTradeDate(
+            eq(ENGINE), eq(MARKET), eq(BOARD), any(), any()))
+        .thenReturn(List.of());
+    when(repository.upsert(any(), any(), any(), any(), anyBoolean(), any(), any())).thenReturn(1);
+
+    List<TradingDay> days =
+        service.tradingDays(
+            Instant.parse("2026-10-31T00:00:00Z"), Instant.parse("2026-11-01T20:00:00Z"));
+
+    assertThat(days).extracting(TradingDay::trading).containsExactly(false, false);
+    verify(repository, never()).upsert(any(), any(), any(), any(), anyBoolean(), any(), any());
   }
 
   private String baseUrl() {

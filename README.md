@@ -106,6 +106,10 @@ Invoke-RestMethod http://localhost:18080/actuator/health   # status = UP
 ```
 
 API БКС смонтирован под `/api/bks/v1/**`, внутренний API отчётов — `/api/internal/reports/**`.
+Боевые пути контракта БКС Trade API открыты параллельно как алиасы: бизнес-операции —
+`/api/v1/**`, обмен refresh-токена — `/trade-api-keycloak/.../token` у корня хоста. Клиенты,
+написанные строго по `docs/bcs-api` (prod-хост `https://trade-api.bcs.ru`), работают без
+перемонтирования путей.
 Примеры запросов и коды ошибок — [`docs/bcs-api/`](docs/bcs-api/) и
 [`docs/reporting.md`](docs/reporting.md). Подробности локального профиля — [`local/README.md`](local/README.md).
 
