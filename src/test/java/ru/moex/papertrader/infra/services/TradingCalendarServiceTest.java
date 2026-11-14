@@ -63,7 +63,9 @@ class TradingCalendarServiceTest {
           respond(exchange, historyFixture);
         });
     // Минутные свечи: запрос по дате отдаёт открытие дня, запрос с 18:00 — вечерний хвост.
-    // Фикстуры привязаны к 2026-10-30 и 2026-11-02; остальные даты отдаём без свечей.
+    // Фикстуры (реальный ответ ISS) — для 2026-10-30; для 2026-11-02 синтезируем бары той же
+    // даты, чтобы границы дня соответствовали запрошенной дате (сервис такое проверяет).
+    // Остальные даты отдаём без свечей.
     byte[] openFixture = fixture("candles_minute_open.json");
     byte[] closeFixture = fixture("candles_minute_close.json");
     byte[] emptyCandles =
@@ -76,12 +78,25 @@ class TradingCalendarServiceTest {
           String query =
               java.net.URLDecoder.decode(
                   exchange.getRequestURI().getRawQuery(), StandardCharsets.UTF_8);
-          boolean hasCandles =
-              query.contains("from=2026-10-30") || query.contains("from=2026-11-02");
-          if (!hasCandles) {
-            respond(exchange, emptyCandles);
-          } else {
+          if (query.contains("from=2026-10-30")) {
             respond(exchange, query.contains("18:00:00") ? closeFixture : openFixture);
+          } else if (query.contains("from=2026-11-02")) {
+            String day = "2026-11-02";
+            String bars =
+                query.contains("18:00:00")
+                    ? ("{\"candles\":{\"columns\":[\"begin\",\"end\"],\"data\":[[\""
+                        + day
+                        + " 23:49:00\",\""
+                        + day
+                        + " 23:49:59\"]]}}")
+                    : ("{\"candles\":{\"columns\":[\"begin\",\"end\"],\"data\":[[\""
+                        + day
+                        + " 09:59:00\",\""
+                        + day
+                        + " 09:59:59\"]]}}");
+            respond(exchange, bars.getBytes(StandardCharsets.UTF_8));
+          } else {
+            respond(exchange, emptyCandles);
           }
         });
     server.start();
@@ -204,6 +219,58 @@ class TradingCalendarServiceTest {
               eq(Instant.parse("2026-10-29T15:50:00Z")));
     } finally {
       historyOnly.stop(0);
+    }
+  }
+
+  @Test
+  void liveDayWithOutOfRangeCandlesIsNotCached() throws IOException {
+    // Регресс прогона 2026-11-14: ISS отдал бар за пределами запрошенного окна, close уехал
+    // на месяц вперёд. Такие границы некорректны: день не кэшируется, статус дня решает
+    // fallback-окно настроек.
+    HttpServer corrupt = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    byte[] historyFixture = fixture();
+    AtomicInteger requests = new AtomicInteger();
+    corrupt.createContext(
+        "/iss/history/engines/stock/markets/shares/boards/TQBR/securities/SBER.json",
+        exchange -> {
+          requests.incrementAndGet();
+          respond(exchange, historyFixture);
+        });
+    byte[] openCandles =
+        "{\"candles\":{\"columns\":[\"begin\",\"end\"],\"data\":[[\"2026-11-02 09:59:00\",\"2026-11-02 10:00:00\"]]}}"
+            .getBytes(StandardCharsets.UTF_8);
+    byte[] futureCloseCandles =
+        "{\"candles\":{\"columns\":[\"begin\",\"end\"],\"data\":[[\"2026-12-15 17:18:00\",\"2026-12-15 17:19:59\"]]}}"
+            .getBytes(StandardCharsets.UTF_8);
+    corrupt.createContext(
+        "/iss/engines/stock/markets/shares/boards/TQBR/securities/SBER/candles.json",
+        exchange -> {
+          requests.incrementAndGet();
+          String query =
+              java.net.URLDecoder.decode(
+                  exchange.getRequestURI().getRawQuery(), StandardCharsets.UTF_8);
+          respond(exchange, query.contains("18:00:00") ? futureCloseCandles : openCandles);
+        });
+    corrupt.start();
+    try {
+      TradingCalendarService guarded =
+          new TradingCalendarService(
+              repository,
+              properties("http://127.0.0.1:" + corrupt.getAddress().getPort()),
+              JsonMapper.builder().build());
+      when(repository.findByEngineAndMarketAndBoardAndTradeDateBetweenOrderByTradeDate(
+              eq(ENGINE), eq(MARKET), eq(BOARD), any(), any()))
+          .thenReturn(List.of());
+      when(repository.upsert(any(), any(), any(), any(), anyBoolean(), any(), any())).thenReturn(1);
+
+      List<TradingDay> days =
+          guarded.tradingDays(
+              Instant.parse("2026-11-02T00:00:00Z"), Instant.parse("2026-11-02T20:00:00Z"));
+
+      assertThat(days).extracting(TradingDay::trading).containsExactly(false);
+      verify(repository, never()).upsert(any(), any(), any(), any(), anyBoolean(), any(), any());
+    } finally {
+      corrupt.stop(0);
     }
   }
 
@@ -336,6 +403,7 @@ class TradingCalendarServiceTest {
             Instant.parse("2026-11-02T00:00:00Z"), Instant.parse("2026-11-02T20:00:00Z"));
 
     assertThat(days).extracting(TradingDay::trading).containsExactly(true);
+    // Границы из синтезированных свечей дня: 09:59 МСК -> 06:59 UTC, 23:49:59 МСК -> 20:49:59 UTC.
     verify(repository)
         .upsert(
             eq(ENGINE),
@@ -343,8 +411,8 @@ class TradingCalendarServiceTest {
             eq(BOARD),
             eq(LocalDate.of(2026, 11, 2)),
             eq(true),
-            any(),
-            any());
+            eq(Instant.parse("2026-11-02T06:59:00Z")),
+            eq(Instant.parse("2026-11-02T20:49:59Z")));
   }
 
   @Test

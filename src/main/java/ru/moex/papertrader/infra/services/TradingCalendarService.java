@@ -306,13 +306,16 @@ public class TradingCalendarService implements TradingCalendar {
 
   /**
    * Границы сессии дня из минутных свечей биржи: открытие — начало первого бара дня, закрытие —
-   * конец последнего бара вечернего фрагмента. Пусто, если данные биржи недоступны.
+   * конец последнего бара вечернего фрагмента. Пусто, если данные биржи недоступны или ответ вышел
+   * за пределы запрошенного дня: в прогонах ISS возвращал бары с датами за пределами окна (close
+   * уезжал на месяц вперёд), и без проверки некорректная граница закреплялась в кэше навсегда,
+   * отключая экспирацию DAY.
    */
   private Optional<SessionBounds> fetchSessionBounds(LocalDate date) {
     try {
       Instant openUtc = firstMinuteBarBegin(date);
       Instant closeUtc = lastMinuteBarEnd(date);
-      if (openUtc == null || closeUtc == null) {
+      if (openUtc == null || closeUtc == null || !boundsWithinDay(date, openUtc, closeUtc)) {
         return Optional.empty();
       }
       return Optional.of(new SessionBounds(openUtc, closeUtc));
@@ -320,6 +323,20 @@ public class TradingCalendarService implements TradingCalendar {
       log.error("Не удалось получить границы сессии {} из ISS: {}", date, exception.getMessage());
       return Optional.empty();
     }
+  }
+
+  /**
+   * Обе границы обязаны лежать внутри запрошенной календарной даты по Москве, а закрытие — строго
+   * после открытия. Вечерний фрагмент сессии заканчивается в тот же календарный день, поэтому выход
+   * за полночь — признак некорректного ответа источника.
+   */
+  private static boolean boundsWithinDay(LocalDate date, Instant openUtc, Instant closeUtc) {
+    Instant dayStart = date.atStartOfDay(MOSCOW).toInstant();
+    Instant dayEnd = date.plusDays(1).atStartOfDay(MOSCOW).toInstant();
+    return !openUtc.isBefore(dayStart)
+        && openUtc.isBefore(dayEnd)
+        && closeUtc.isAfter(openUtc)
+        && !closeUtc.isAfter(dayEnd);
   }
 
   /** Начало первой минутной свечи дня: запрос только по дате отдаёт бары с открытия дня. */
