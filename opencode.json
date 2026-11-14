@@ -37,5 +37,13 @@
     "keep": {
       "tokens": 12000
     }
+  },
+  "mcp": {
+    "servers": {
+      "serena": {
+        "type": "remote",
+        "url": "http://127.0.0.1:8712/mcp"
+      }
+    }
   }
 }
