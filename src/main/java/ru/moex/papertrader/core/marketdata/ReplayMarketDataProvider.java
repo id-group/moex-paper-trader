@@ -209,10 +209,26 @@ public final class ReplayMarketDataProvider implements MarketDataProvider {
     }
     TradingDay current = findDay(at.atZone(MOSCOW).toLocalDate());
     if (current != null && isOpen(current, at)) {
-      return new TradingSession(SESSION_ID, SESSION_NAME, true, current.closeUtc());
+      return new TradingSession(
+          SESSION_ID, SESSION_NAME, true, current.closeUtc(), current.closeUtc());
     }
     Instant nextOpen = nextOpenAfter(at);
-    return new TradingSession(SESSION_ID, SESSION_NAME, false, nextOpen != null ? nextOpen : at);
+    return new TradingSession(
+        SESSION_ID, SESSION_NAME, false, nextOpen != null ? nextOpen : at, lastCloseAt(at));
+  }
+
+  /** Закрытие последнего торгового дня записанного календаря, не позднее {@code at}. */
+  private Instant lastCloseAt(Instant at) {
+    LocalDate date = at.atZone(MOSCOW).toLocalDate();
+    Instant close = null;
+    for (TradingDay day : calendar) {
+      if (!day.date().isAfter(date) && day.trading() && day.closeUtc() != null) {
+        if (close == null || day.closeUtc().isAfter(close)) {
+          close = day.closeUtc();
+        }
+      }
+    }
+    return close;
   }
 
   @Override

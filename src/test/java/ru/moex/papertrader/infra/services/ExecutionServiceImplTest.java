@@ -217,13 +217,74 @@ class ExecutionServiceImplTest {
     Order expired = restored(day, OrderStatus.CANCELED, 0);
     when(marketDataProvider.tradingSession(NOW)).thenReturn(CLOSED);
     when(orderService.activeOrders()).thenReturn(List.of(day));
-    when(orderService.expire(OrderIdType.EXCHANGE, day.orderId())).thenReturn(expired);
+    when(orderService.expire(eq(OrderIdType.EXCHANGE), eq(day.orderId()), anyString()))
+        .thenReturn(expired);
 
     int processed = service.tick();
 
     assertThat(processed).isEqualTo(1);
-    verify(orderService).expire(OrderIdType.EXCHANGE, day.orderId());
+    verify(orderService).expire(eq(OrderIdType.EXCHANGE), eq(day.orderId()), anyString());
     verify(orderService, never()).get(any(), anyString());
+  }
+
+  @Test
+  void tickKeepsDayOrderCreatedAfterSessionCloseAlive() {
+    // Регресс E2E-07 (P3): DAY-заявка, созданная после закрытия сессии, живёт до конца следующего
+    // торгового дня, а не экспайрится на первом же тике.
+    Instant closeAt = NOW.minusSeconds(3600);
+    TradingSession afterClose =
+        new TradingSession(0, "Сессия закрыта", false, NOW.plusSeconds(20 * 3600), closeAt);
+    Order day = order(OrderType.LIMIT, TimeInForce.DAY, 10, "285.50");
+    when(marketDataProvider.tradingSession(NOW)).thenReturn(afterClose);
+    when(orderService.activeOrders()).thenReturn(List.of(day));
+
+    int processed = service.tick();
+
+    assertThat(processed).isZero();
+    verify(orderService, never()).expire(any(), anyString());
+    verify(orderService, never()).expire(any(), anyString(), anyString());
+  }
+
+  @Test
+  void tickExpiresDayOrderOfPastSessionWithBoundaryReason() {
+    // Граница дня: DAY-заявка, созданная до закрытия, истекает после него; причина EXPIRED
+    // содержит таймстемп границы — иначе «день закончился» неотличимо от «календарь не совпал».
+    Instant closeAt = NOW.minusSeconds(3600);
+    TradingSession afterClose =
+        new TradingSession(0, "Сессия закрыта", false, NOW.plusSeconds(20 * 3600), closeAt);
+    Order day =
+        createdAt(order(OrderType.LIMIT, TimeInForce.DAY, 10, "285.50"), NOW.minusSeconds(7200));
+    when(marketDataProvider.tradingSession(NOW)).thenReturn(afterClose);
+    when(orderService.activeOrders()).thenReturn(List.of(day));
+    when(orderService.expire(eq(OrderIdType.EXCHANGE), eq(day.orderId()), anyString()))
+        .thenReturn(restedCanceled(day));
+
+    int processed = service.tick();
+
+    assertThat(processed).isEqualTo(1);
+    verify(orderService)
+        .expire(
+            eq(OrderIdType.EXCHANGE),
+            eq(day.orderId()),
+            org.mockito.ArgumentMatchers.contains(closeAt.toString()));
+  }
+
+  @Test
+  void tickKeepsDayOrderCreatedBeforeOpenAlive() {
+    // DAY-заявка, созданная до открытия, ждёт сессию и не экспайрится.
+    TradingSession beforeOpen =
+        new TradingSession(
+            1, "Основная сессия", false, NOW.plusSeconds(3600), NOW.plusSeconds(10 * 3600));
+    Order day =
+        createdAt(order(OrderType.LIMIT, TimeInForce.DAY, 10, "285.50"), NOW.minusSeconds(600));
+    when(marketDataProvider.tradingSession(NOW)).thenReturn(beforeOpen);
+    when(orderService.activeOrders()).thenReturn(List.of(day));
+
+    int processed = service.tick();
+
+    assertThat(processed).isZero();
+    verify(orderService, never()).expire(any(), anyString());
+    verify(orderService, never()).expire(any(), anyString(), anyString());
   }
 
   @Test
@@ -232,12 +293,13 @@ class ExecutionServiceImplTest {
     Order expired = restored(gtd, OrderStatus.CANCELED, 0);
     when(marketDataProvider.tradingSession(NOW)).thenReturn(OPEN);
     when(orderService.activeOrders()).thenReturn(List.of(gtd));
-    when(orderService.expire(OrderIdType.EXCHANGE, gtd.orderId())).thenReturn(expired);
+    when(orderService.expire(eq(OrderIdType.EXCHANGE), eq(gtd.orderId()), anyString()))
+        .thenReturn(expired);
 
     int processed = service.tick();
 
     assertThat(processed).isEqualTo(1);
-    verify(orderService).expire(OrderIdType.EXCHANGE, gtd.orderId());
+    verify(orderService).expire(eq(OrderIdType.EXCHANGE), eq(gtd.orderId()), anyString());
   }
 
   @Test
@@ -245,12 +307,12 @@ class ExecutionServiceImplTest {
     Order gtd = gtdOrder(NOW.atZone(ZoneId.of("Europe/Moscow")).toLocalDate());
     when(marketDataProvider.tradingSession(NOW)).thenReturn(CLOSED);
     when(orderService.activeOrders()).thenReturn(List.of(gtd));
-    when(orderService.expire(OrderIdType.EXCHANGE, gtd.orderId()))
+    when(orderService.expire(eq(OrderIdType.EXCHANGE), eq(gtd.orderId()), anyString()))
         .thenReturn(restored(gtd, OrderStatus.CANCELED, 0));
 
     service.tick();
 
-    verify(orderService).expire(OrderIdType.EXCHANGE, gtd.orderId());
+    verify(orderService).expire(eq(OrderIdType.EXCHANGE), eq(gtd.orderId()), anyString());
   }
 
   @Test
@@ -368,6 +430,31 @@ class ExecutionServiceImplTest {
         0,
         null,
         expiryDate);
+  }
+
+  /** Копия заявки с другим моментом создания (сценарии экспирации DAY). */
+  private static Order createdAt(Order base, Instant createdAt) {
+    return Order.restore(
+        base.orderNum(),
+        base.clientOrderId(),
+        base.orderId(),
+        base.instrument(),
+        base.side(),
+        base.orderType(),
+        base.timeInForce(),
+        base.quantity(),
+        base.price(),
+        base.clientCode(),
+        createdAt,
+        createdAt,
+        OrderStatus.NEW,
+        0,
+        null,
+        base.expiryDate());
+  }
+
+  private static Order restedCanceled(Order base) {
+    return restored(base, OrderStatus.CANCELED, base.executedQuantity());
   }
 
   private static Order restored(Order base, OrderStatus status, long executedQuantity) {

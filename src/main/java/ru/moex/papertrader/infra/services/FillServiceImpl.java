@@ -2,6 +2,7 @@ package ru.moex.papertrader.infra.services;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,7 @@ import ru.moex.papertrader.infra.mapper.InstrumentMapper;
 import ru.moex.papertrader.infra.mapper.OrderMapper;
 import ru.moex.papertrader.infra.mapper.VirtualPortfolioMapper;
 import ru.moex.papertrader.infra.model.AccountBalanceEntity;
+import ru.moex.papertrader.infra.model.FillEntity;
 import ru.moex.papertrader.infra.model.InstrumentEntity;
 import ru.moex.papertrader.infra.model.PositionEntity;
 import ru.moex.papertrader.infra.repository.AccountBalanceRepository;
@@ -144,85 +146,7 @@ public class FillServiceImpl implements FillService {
       long quantity,
       BigDecimal price,
       BigDecimal referencePrice) {
-    return fillInternal(idType, orderId, quantity, price, referencePrice);
-  }
-
-  private Order fillInternal(
-      OrderIdType idType,
-      String orderId,
-      long quantity,
-      BigDecimal price,
-      BigDecimal referencePrice) {
-    String accountId = properties.account();
-    accountService.lockAccount(accountId);
-    Order order = orderService.get(idType, orderId);
-
-    requireActive(order);
-    long remaining = order.quantity() - order.executedQuantity();
-    if (quantity <= 0) {
-      throw new InvalidOrderException("Объём сделки должен быть больше 0");
-    }
-    if (quantity > remaining) {
-      throw new InvalidOrderException(
-          "Объём сделки " + quantity + " больше остатка " + remaining + " по заявке " + orderId);
-    }
-
-    Instrument instrument = order.instrument();
-    InstrumentType type = instrumentType(instrument);
-    Instant now = clock.instant();
-    BigDecimal effectivePrice = price == null ? lastPrice(instrument) : price;
-    if (effectivePrice == null || effectivePrice.signum() <= 0) {
-      throw new InvalidOrderException("price должен быть положительным");
-    }
-    BigDecimal effectiveReferencePrice = referencePrice == null ? effectivePrice : referencePrice;
-    if (effectiveReferencePrice.signum() <= 0) {
-      throw new InvalidOrderException("referencePrice должен быть положительным");
-    }
-    BigDecimal commission =
-        COMMISSION_CALCULATOR.calculate(type, instrument.ticker(), effectivePrice, quantity);
-
-    VirtualPortfolio portfolio = restorePortfolio(accountId);
-    boolean futures = type == InstrumentType.FUTURES;
-    // ГО «до» считается по средней цене уже открытой позиции — формулы средней цены не дублируем.
-    BigDecimal marginBefore = futures ? positionMargin(portfolio, instrument) : Money.ZERO;
-    if (!futures) {
-      checkStockAvailability(portfolio, order, effectivePrice, quantity, commission);
-    }
-
-    Fill fill =
-        order.side() == Side.BUY
-            ? portfolio.buy(instrument, quantity, effectivePrice, commission, now)
-            : portfolio.sell(instrument, quantity, effectivePrice, commission, now);
-    if (futures) {
-      // Портфель — рабочая копия до persist: отказ по обеспечению откатывает транзакцию и не
-      // сохраняет ни сделку, ни позицию, ни баланс.
-      updateFuturesMargin(portfolio, order, marginBefore);
-    }
-    OrderStatus previousStatus = order.status();
-    order.applyFill(fill);
-
-    persist(accountId, order, instrument, fill, effectiveReferencePrice, portfolio, now);
-    eventRecorder.record(
-        new OrderEvent(
-            order.orderId(),
-            order.status() == OrderStatus.FILLED
-                ? OrderEventType.FILLED
-                : OrderEventType.PARTIALLY_FILLED,
-            previousStatus,
-            order.status(),
-            fill.quantity(),
-            fill.price(),
-            null,
-            fill.executedAt()));
-    log.debug(
-        "Сделка по заявке {}: {} {}/{} по {} с комиссией {}",
-        order.orderId(),
-        quantity,
-        instrument.ticker(),
-        instrument.classCode(),
-        effectivePrice,
-        commission);
-    return order;
+    return fillBatch(idType, orderId, List.of(new PlannedFill(quantity, price, referencePrice)));
   }
 
   @Override
@@ -231,16 +155,126 @@ public class FillServiceImpl implements FillService {
     if (fills == null || fills.isEmpty()) {
       throw new InvalidOrderException("Список сделок не может быть пустым");
     }
-    Order result = null;
-    // Самовызов fillInternal() остаётся внутри транзакции fillAll: любая ошибка откатывает весь
-    // набор.
-    for (MatchFill matchFill : fills) {
-      result =
-          fillInternal(
-              idType, orderId, matchFill.quantity(), matchFill.price(), matchFill.referencePrice());
-    }
-    return result;
+    List<PlannedFill> planned =
+        fills.stream()
+            .map(
+                matchFill ->
+                    new PlannedFill(
+                        matchFill.quantity(), matchFill.price(), matchFill.referencePrice()))
+            .toList();
+    return fillBatch(idType, orderId, planned);
   }
+
+  /**
+   * Применяет батч сделок одной транзакцией: портфель восстанавливается из БД один раз и копится в
+   * памяти, запись выполняется один раз в конце.
+   *
+   * <p>Восстановление на каждую сделку невозможно: нативные {@code upsert}/{@code updateBalances}
+   * не обновляют управляемые сущности persistence context, и повторное чтение в той же транзакции
+   * вернуло бы снимок до записи — позиция и кэш росли бы только на последнюю сделку батча (дефект
+   * согласованности позиций, E2E-07).
+   */
+  private Order fillBatch(OrderIdType idType, String orderId, List<PlannedFill> planned) {
+    String accountId = properties.account();
+    accountService.lockAccount(accountId);
+    Order order = orderService.get(idType, orderId);
+
+    requireActive(order);
+    Instrument instrument = order.instrument();
+    InstrumentType type = instrumentType(instrument);
+    Long instrumentId =
+        instruments
+            .findByTickerAndClassCode(instrument.ticker(), instrument.classCode())
+            .map(InstrumentEntity::getId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Инструмент "
+                            + instrument.ticker()
+                            + "/"
+                            + instrument.classCode()
+                            + " не найден"));
+    boolean futures = type == InstrumentType.FUTURES;
+    VirtualPortfolio portfolio = restorePortfolio(accountId);
+
+    List<FillEntity> fillEntities = new ArrayList<>(planned.size());
+    for (PlannedFill plan : planned) {
+      long remaining = order.quantity() - order.executedQuantity();
+      if (plan.quantity() <= 0) {
+        throw new InvalidOrderException("Объём сделки должен быть больше 0");
+      }
+      if (plan.quantity() > remaining) {
+        throw new InvalidOrderException(
+            "Объём сделки "
+                + plan.quantity()
+                + " больше остатка "
+                + remaining
+                + " по заявке "
+                + orderId);
+      }
+      Instant now = clock.instant();
+      BigDecimal effectivePrice = plan.price() == null ? lastPrice(instrument) : plan.price();
+      if (effectivePrice == null || effectivePrice.signum() <= 0) {
+        throw new InvalidOrderException("price должен быть положительным");
+      }
+      BigDecimal effectiveReferencePrice =
+          plan.referencePrice() == null ? effectivePrice : plan.referencePrice();
+      if (effectiveReferencePrice.signum() <= 0) {
+        throw new InvalidOrderException("referencePrice должен быть положительным");
+      }
+      BigDecimal commission =
+          COMMISSION_CALCULATOR.calculate(
+              type, instrument.ticker(), effectivePrice, plan.quantity());
+
+      // ГО «до» считается по средней цене уже открытой позиции — формулы средней цены не дублируем.
+      BigDecimal marginBefore = futures ? positionMargin(portfolio, instrument) : Money.ZERO;
+      if (!futures) {
+        checkStockAvailability(portfolio, order, effectivePrice, plan.quantity(), commission);
+      }
+
+      Fill fill =
+          order.side() == Side.BUY
+              ? portfolio.buy(instrument, plan.quantity(), effectivePrice, commission, now)
+              : portfolio.sell(instrument, plan.quantity(), effectivePrice, commission, now);
+      if (futures) {
+        // Портфель — рабочая копия до persist: отказ по обеспечению откатывает транзакцию и не
+        // сохраняет ни сделку, ни позицию, ни баланс.
+        updateFuturesMargin(portfolio, order, marginBefore);
+      }
+      OrderStatus previousStatus = order.status();
+      order.applyFill(fill);
+      fillEntities.add(
+          fillMapper.toEntity(
+              fill, order.orderId(), accountId, instrumentId, effectiveReferencePrice));
+      boolean filled = order.status() == OrderStatus.FILLED;
+      eventRecorder.record(
+          new OrderEvent(
+              order.orderId(),
+              filled ? OrderEventType.FILLED : OrderEventType.PARTIALLY_FILLED,
+              previousStatus,
+              order.status(),
+              // P4: терминальное событие несёт накопленный executed_quantity, промежуточное —
+              // размер фишла.
+              filled ? order.executedQuantity() : fill.quantity(),
+              fill.price(),
+              null,
+              fill.executedAt()));
+      log.debug(
+          "Сделка по заявке {}: {} {}/{} по {} с комиссией {}",
+          order.orderId(),
+          plan.quantity(),
+          instrument.ticker(),
+          instrument.classCode(),
+          effectivePrice,
+          commission);
+    }
+
+    persist(accountId, order, instrumentId, instrument, fillEntities, portfolio, clock.instant());
+    return order;
+  }
+
+  /** Запланированное исполнение: объём и цены (null — взять последнюю рыночную цену). */
+  private record PlannedFill(long quantity, BigDecimal price, BigDecimal referencePrice) {}
 
   private static void requireActive(Order order) {
     if (order.status() != OrderStatus.NEW && order.status() != OrderStatus.PARTIALLY_FILLED) {
@@ -404,26 +438,13 @@ public class FillServiceImpl implements FillService {
   private void persist(
       String accountId,
       Order order,
+      Long instrumentId,
       Instrument instrument,
-      Fill fill,
-      BigDecimal referencePrice,
+      List<FillEntity> fillEntities,
       VirtualPortfolio portfolio,
       Instant now) {
-    Long instrumentId =
-        instruments
-            .findByTickerAndClassCode(instrument.ticker(), instrument.classCode())
-            .map(InstrumentEntity::getId)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "Инструмент "
-                            + instrument.ticker()
-                            + "/"
-                            + instrument.classCode()
-                            + " не найден"));
-
     orders.saveAndFlush(orderMapper.toEntity(order, accountId, instrumentId));
-    fills.save(fillMapper.toEntity(fill, order.orderId(), accountId, instrumentId, referencePrice));
+    fills.saveAll(fillEntities);
     savePosition(accountId, instrumentId, instrument, portfolio, now);
     saveBalances(accountId, portfolio, now);
   }

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,12 +27,16 @@ import ru.moex.papertrader.core.domain.OrderType;
 import ru.moex.papertrader.core.domain.PortfolioSnapshot;
 import ru.moex.papertrader.core.domain.Side;
 import ru.moex.papertrader.core.domain.TimeInForce;
+import ru.moex.papertrader.core.execution.MatchFill;
+import ru.moex.papertrader.core.execution.OrderEventType;
 import ru.moex.papertrader.infra.model.FillEntity;
 import ru.moex.papertrader.infra.model.InstrumentEntity;
+import ru.moex.papertrader.infra.model.OrderEventEntity;
 import ru.moex.papertrader.infra.model.PositionEntity;
 import ru.moex.papertrader.infra.repository.AccountBalanceRepository;
 import ru.moex.papertrader.infra.repository.FillRepository;
 import ru.moex.papertrader.infra.repository.InstrumentRepository;
+import ru.moex.papertrader.infra.repository.OrderEventRepository;
 import ru.moex.papertrader.infra.repository.PositionRepository;
 import ru.moex.papertrader.infra.services.exception.InvalidRequestException;
 import ru.moex.papertrader.infra.services.exception.ResourceNotFoundException;
@@ -64,6 +69,7 @@ class FillServiceIT extends PostgresContainerSupport {
   @Autowired private AccountBalanceRepository balances;
   @Autowired private PositionRepository positions;
   @Autowired private FillRepository fills;
+  @Autowired private OrderEventRepository orderEvents;
   @Autowired private InstrumentRepository instruments;
   @Autowired private EntityManager entityManager;
 
@@ -71,6 +77,100 @@ class FillServiceIT extends PostgresContainerSupport {
   void prepareAccount() {
     accountService.ensureAccount();
     setCash("100000");
+  }
+
+  @Test
+  void fillAllAppliesWholeBatchWithAccumulatedPositionAndWeightedAverage() {
+    // Регресс P1/P2 (emulator-position-consistency): батч фишлов одного прохода обязан
+    // накапливать позицию, среднюю цену и кэш по всем фишлам, а не по последнему.
+    Order order = placeStock(Side.BUY, "100", 350);
+    flushAndClear();
+
+    Order filled =
+        fillService.fillAll(
+            OrderIdType.EXCHANGE,
+            order.orderId(),
+            List.of(
+                new MatchFill(new BigDecimal("100"), 100),
+                new MatchFill(new BigDecimal("101"), 150),
+                new MatchFill(new BigDecimal("102"), 100)));
+    flushAndClear();
+
+    PositionEntity position = position(SBER, TQBR).orElseThrow();
+    assertThat(position.getQuantity()).isEqualTo(350);
+    // (100*100 + 101*150 + 102*100) / 350 = 101.000000
+    assertThat(position.getAveragePrice()).isEqualByComparingTo("101.000000");
+    // 100000 - 35350 (оборот) - 35.35 (комиссия 0.1% по фишлам)
+    assertThat(cash()).isEqualByComparingTo("64614.65");
+    assertThat(fills.findByOrderId(order.orderId())).hasSize(3);
+    assertThat(filled.status()).isEqualTo(OrderStatus.FILLED);
+    assertThat(filled.executedQuantity()).isEqualTo(350);
+  }
+
+  @Test
+  void positionQuantityAlwaysEqualsSumOfFills() {
+    // Постоянный инвариант (P1.4): позиция равна сумме исполнений по инструменту.
+    Order order = placeStock(Side.BUY, "100", 300);
+    flushAndClear();
+
+    fillService.fillAll(
+        OrderIdType.EXCHANGE,
+        order.orderId(),
+        List.of(
+            new MatchFill(new BigDecimal("100"), 120),
+            new MatchFill(new BigDecimal("101"), 90),
+            new MatchFill(new BigDecimal("99"), 90)));
+    flushAndClear();
+
+    long fillsSum =
+        fills.findByOrderId(order.orderId()).stream().mapToLong(FillEntity::getQuantity).sum();
+    assertThat(position(SBER, TQBR).orElseThrow().getQuantity()).isEqualTo(fillsSum);
+  }
+
+  @Test
+  void sellKeepsAveragePriceOfPosition() {
+    // P2.3: сокращение позиции (SELL) не меняет среднюю цену остатка.
+    Order buy = placeStock(Side.BUY, "100", 300);
+    flushAndClear();
+    fillService.fillAll(
+        OrderIdType.EXCHANGE,
+        buy.orderId(),
+        List.of(
+            new MatchFill(new BigDecimal("100"), 100), new MatchFill(new BigDecimal("101"), 200)));
+    flushAndClear();
+    // (100*100 + 101*200) / 300 = 100.666667
+    assertThat(position(SBER, TQBR).orElseThrow().getAveragePrice())
+        .isEqualByComparingTo("100.666667");
+
+    Order sell = placeStock(Side.SELL, "110", 100);
+    flushAndClear();
+    fillService.fill(OrderIdType.EXCHANGE, sell.orderId(), 100, new BigDecimal("110"));
+    flushAndClear();
+
+    PositionEntity position = position(SBER, TQBR).orElseThrow();
+    assertThat(position.getQuantity()).isEqualTo(200);
+    assertThat(position.getAveragePrice()).isEqualByComparingTo("100.666667");
+  }
+
+  @Test
+  void fillEventsCarryFillSizeAndTerminalEventsCarryExecutedQuantity() {
+    // P4: PARTIALLY_FILLED несёт размер фишла, FILLED — накопленный executed_quantity заявки.
+    Order order = placeStock(Side.BUY, "100", 10);
+    flushAndClear();
+
+    fillService.fill(OrderIdType.EXCHANGE, order.orderId(), 4, new BigDecimal("100"));
+    flushAndClear();
+    fillService.fill(OrderIdType.EXCHANGE, order.orderId(), 6, new BigDecimal("100"));
+    flushAndClear();
+
+    List<OrderEventEntity> events =
+        orderEvents.findByOrderIdOrderByOccurredAtAscIdAsc(order.orderId());
+    assertThat(events)
+        .extracting(OrderEventEntity::getEventType)
+        .containsExactly(
+            OrderEventType.CREATED, OrderEventType.PARTIALLY_FILLED, OrderEventType.FILLED);
+    assertThat(events.get(1).getQuantity()).isEqualTo(4L);
+    assertThat(events.get(2).getQuantity()).isEqualTo(10L);
   }
 
   @Test

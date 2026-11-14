@@ -142,7 +142,6 @@ public class JpaOrderServiceImpl implements OrderService {
     accountService.lockAccount(accountId);
     OrderEntity entity = resolveEntity(idType, orderId);
     Order order = orderMapper.toDomain(entity, instrument(entity.getInstrumentId()));
-    long remaining = order.quantity() - order.executedQuantity();
     OrderStatus previousStatus = order.status();
     order.cancel(clock.instant());
     orders.saveAndFlush(orderMapper.toEntity(order, accountId, entity.getInstrumentId()));
@@ -152,7 +151,7 @@ public class JpaOrderServiceImpl implements OrderService {
             OrderEventType.CANCELED,
             previousStatus,
             order.status(),
-            remaining,
+            order.executedQuantity(),
             order.price(),
             reason,
             order.updatedAt()));
@@ -167,7 +166,6 @@ public class JpaOrderServiceImpl implements OrderService {
     accountService.lockAccount(accountId);
     OrderEntity entity = resolveEntity(idType, orderId);
     Order order = orderMapper.toDomain(entity, instrument(entity.getInstrumentId()));
-    long remaining = order.quantity() - order.executedQuantity();
     OrderStatus previousStatus = order.status();
     order.reject(clock.instant());
     orders.saveAndFlush(orderMapper.toEntity(order, accountId, entity.getInstrumentId()));
@@ -177,7 +175,7 @@ public class JpaOrderServiceImpl implements OrderService {
             OrderEventType.REJECTED,
             previousStatus,
             order.status(),
-            remaining,
+            order.executedQuantity(),
             order.price(),
             reason,
             order.updatedAt()));
@@ -188,11 +186,16 @@ public class JpaOrderServiceImpl implements OrderService {
   @Override
   @Transactional
   public Order expire(OrderIdType idType, String orderId) {
+    return expire(idType, orderId, "Срок действия заявки истёк");
+  }
+
+  @Override
+  @Transactional
+  public Order expire(OrderIdType idType, String orderId, String reason) {
     String accountId = portfolioProperties.account();
     accountService.lockAccount(accountId);
     OrderEntity entity = resolveEntity(idType, orderId);
     Order order = orderMapper.toDomain(entity, instrument(entity.getInstrumentId()));
-    long remaining = order.quantity() - order.executedQuantity();
     OrderStatus previousStatus = order.status();
     order.cancel(clock.instant());
     orders.saveAndFlush(orderMapper.toEntity(order, accountId, entity.getInstrumentId()));
@@ -202,9 +205,9 @@ public class JpaOrderServiceImpl implements OrderService {
             OrderEventType.EXPIRED,
             previousStatus,
             order.status(),
-            remaining,
+            order.executedQuantity(),
             order.price(),
-            "Срок действия заявки истёк",
+            reason,
             order.updatedAt()));
     log.debug("Заявка {} снята по истечении срока действия", order.orderId());
     return order;

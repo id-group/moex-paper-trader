@@ -35,6 +35,12 @@ public interface OrderService {
    */
   Order expire(OrderIdType idType, String orderId);
 
+  /**
+   * Снимает активную заявку по истечении срока с различимой причиной для журнала {@code
+   * order_events}: у DAY она включает таймстемп границы сессии.
+   */
+  Order expire(OrderIdType idType, String orderId, String reason);
+
   PageResult<Order> search(
       OrderSearchCriteria criteria, int page, int size, List<String> sortSpecs);
 

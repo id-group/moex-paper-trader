@@ -112,6 +112,12 @@ public class InMemoryOrderServiceImpl implements OrderService {
 
   @Override
   public Order expire(OrderIdType idType, String orderId) {
+    return expire(idType, orderId, "Срок действия заявки истёк");
+  }
+
+  @Override
+  public Order expire(OrderIdType idType, String orderId, String reason) {
+    // In-memory реализация не ведёт журнал order_events: причина не сохраняется.
     synchronized (mutationLock) {
       Order order = resolve(idType, orderId);
       order.cancel(clock.instant());

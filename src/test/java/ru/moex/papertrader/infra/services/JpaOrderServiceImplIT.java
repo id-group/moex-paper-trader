@@ -56,6 +56,7 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
   private static final long ORDER_ID_SEQUENCE_BASE = 796_285_400_000L;
 
   @Autowired private JpaOrderServiceImpl service;
+  @Autowired private FillService fillService;
   @Autowired private OrderRepository orders;
   @Autowired private InstrumentRepository instruments;
   @Autowired private OrderEventRepository orderEvents;
@@ -184,7 +185,8 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
   }
 
   @Test
-  void cancelWithReasonWritesCanceledEventWithRemainingQuantity() {
+  void cancelWithReasonWritesCanceledEventWithExecutedQuantity() {
+    // P4: в терминальных событиях quantity — накопленный executed_quantity, а не остаток.
     Order placed = service.place(limitOrder("SBER", Side.BUY, "285.5", 10));
     flushAndClear();
 
@@ -198,8 +200,26 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
     OrderEventEntity canceled = events.get(1);
     assertThat(canceled.getPreviousStatus()).isEqualTo(OrderStatus.NEW);
     assertThat(canceled.getStatus()).isEqualTo(OrderStatus.CANCELED);
-    assertThat(canceled.getQuantity()).isEqualTo(10L);
+    assertThat(canceled.getQuantity()).isZero();
     assertThat(canceled.getReason()).isEqualTo("Клиент снял заявку");
+  }
+
+  @Test
+  void terminalEventsOfPartiallyFilledOrderCarryExecutedQuantity() {
+    // P4: FILLED/EXPIRED частично исполненной заявки несут накопленный executed_quantity.
+    Order placed = service.place(limitOrder("SBER", Side.BUY, "285.5", 10));
+    flushAndClear();
+    fillService.fill(OrderIdType.EXCHANGE, placed.orderId(), 4, new BigDecimal("285.5"));
+    flushAndClear();
+
+    service.expire(OrderIdType.EXCHANGE, placed.orderId(), "Граница сессии");
+    flushAndClear();
+
+    List<OrderEventEntity> events = events(placed.orderId());
+    OrderEventEntity expiration = events.get(events.size() - 1);
+    assertThat(expiration.getEventType()).isEqualTo(OrderEventType.EXPIRED);
+    assertThat(expiration.getPreviousStatus()).isEqualTo(OrderStatus.PARTIALLY_FILLED);
+    assertThat(expiration.getQuantity()).isEqualTo(4L);
   }
 
   @Test

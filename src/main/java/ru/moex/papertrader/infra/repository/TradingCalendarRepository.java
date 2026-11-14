@@ -21,6 +21,11 @@ public interface TradingCalendarRepository extends JpaRepository<TradingCalendar
   Optional<TradingCalendarEntity> findByEngineAndMarketAndBoardAndTradeDate(
       String engine, String market, String board, LocalDate tradeDate);
 
+  /** Последний торговый день, не позднее {@code tradeDate}; граница closeAt для DAY-экспирации. */
+  Optional<TradingCalendarEntity>
+      findTopByEngineAndMarketAndBoardAndTradeDateLessThanEqualAndTradingTrueOrderByTradeDateDesc(
+          String engine, String market, String board, LocalDate tradeDate);
+
   /** Ближайший торговый день после указанного — для {@code TradingSession.nextSessionAt}. */
   Optional<TradingCalendarEntity>
       findTopByEngineAndMarketAndBoardAndTradeDateGreaterThanAndTradingTrueOrderByTradeDateAsc(

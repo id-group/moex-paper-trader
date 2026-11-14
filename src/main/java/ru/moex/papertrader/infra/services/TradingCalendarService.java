@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -101,6 +102,7 @@ public class TradingCalendarService implements TradingCalendar {
   }
 
   @Override
+  @Transactional
   public List<TradingDay> tradingDays(Instant from, Instant to) {
     Objects.requireNonNull(from, "from");
     Objects.requireNonNull(to, "to");
@@ -136,10 +138,10 @@ public class TradingCalendarService implements TradingCalendar {
       TradingDay day = mapper.toDomain(today.get());
       if (day.trading() && day.openUtc() != null && day.closeUtc() != null) {
         if (!at.isBefore(day.openUtc()) && !at.isAfter(day.closeUtc())) {
-          return new TradingSession(SESSION_ID, SESSION_NAME, true, day.closeUtc());
+          return new TradingSession(SESSION_ID, SESSION_NAME, true, day.closeUtc(), day.closeUtc());
         }
         if (at.isBefore(day.openUtc())) {
-          return new TradingSession(SESSION_ID, SESSION_NAME, false, day.openUtc());
+          return new TradingSession(SESSION_ID, SESSION_NAME, false, day.openUtc(), day.closeUtc());
         }
       }
       return closedSession(date);
@@ -150,10 +152,10 @@ public class TradingCalendarService implements TradingCalendar {
       Instant openUtc = fallbackOpen(date);
       Instant closeUtc = date.atTime(properties.sessionClose()).atZone(MOSCOW).toInstant();
       if (!at.isBefore(openUtc) && !at.isAfter(closeUtc)) {
-        return new TradingSession(SESSION_ID, SESSION_NAME, true, closeUtc);
+        return new TradingSession(SESSION_ID, SESSION_NAME, true, closeUtc, closeUtc);
       }
       if (at.isBefore(openUtc)) {
-        return new TradingSession(SESSION_ID, SESSION_NAME, false, openUtc);
+        return new TradingSession(SESSION_ID, SESSION_NAME, false, openUtc, closeUtc);
       }
     }
     return closedSession(date);
@@ -162,7 +164,29 @@ public class TradingCalendarService implements TradingCalendar {
   private TradingSession closedSession(LocalDate date) {
     Instant nextAt =
         nextTradingDay(date).map(TradingDay::openUtc).orElseGet(() -> nextWeekdayOpen(date));
-    return new TradingSession(SESSION_ID, SESSION_NAME, false, nextAt);
+    return new TradingSession(SESSION_ID, SESSION_NAME, false, nextAt, lastCloseUtc(date));
+  }
+
+  /** Закрытие последнего торгового дня, не позднее {@code date}; без БД — fallback-окно будня. */
+  private Instant lastCloseUtc(LocalDate date) {
+    return calendar
+        .findTopByEngineAndMarketAndBoardAndTradeDateLessThanEqualAndTradingTrueOrderByTradeDateDesc(
+            properties.calendarEngine(),
+            properties.calendarMarket(),
+            properties.calendarBoard(),
+            date)
+        .map(mapper::toDomain)
+        .map(TradingDay::closeUtc)
+        .orElseGet(() -> lastWeekdayClose(date));
+  }
+
+  /** Закрытие последнего будня, не позднее {@code date}, по fallback-окну настроек (UTC). */
+  private Instant lastWeekdayClose(LocalDate date) {
+    LocalDate last = date;
+    while (isWeekend(last)) {
+      last = last.minusDays(1);
+    }
+    return last.atTime(properties.sessionClose()).atZone(MOSCOW).toInstant();
   }
 
   /** Открытие следующего буднего дня по fallback-окну настроек (UTC). */

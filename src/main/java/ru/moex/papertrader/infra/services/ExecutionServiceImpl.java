@@ -112,8 +112,8 @@ public class ExecutionServiceImpl implements ExecutionService {
         continue;
       }
       try {
-        if (isExpired(order, today, session)) {
-          orderService.expire(OrderIdType.EXCHANGE, order.orderId());
+        if (isExpired(order, today, now, session)) {
+          orderService.expire(OrderIdType.EXCHANGE, order.orderId(), expiryReason(order, session));
           processed++;
           continue;
         }
@@ -131,13 +131,14 @@ public class ExecutionServiceImpl implements ExecutionService {
     return processed;
   }
 
-  /** Снятие по сроку: DAY — в конце сессии, GTD — после expiryDate (или на закрытии этого дня). */
-  private static boolean isExpired(Order order, LocalDate today, TradingSession session) {
+  /** Снятие по сроку: DAY — на границе своего торгового дня, GTD — после expiryDate. */
+  private static boolean isExpired(
+      Order order, LocalDate today, Instant now, TradingSession session) {
     if (!isExecutable(order.status())) {
       return false;
     }
     return switch (order.timeInForce()) {
-      case DAY -> !session.open();
+      case DAY -> dayExpired(order, now, session);
       case GOOD_TILL_DATE -> {
         LocalDate expiry = order.expiryDate();
         yield expiry != null
@@ -145,6 +146,32 @@ public class ExecutionServiceImpl implements ExecutionService {
       }
       case FILL_OR_KILL -> false;
     };
+  }
+
+  /**
+   * DAY живёт до конца торгового дня, под который создана: заявка, созданная до закрытия, истекает
+   * на границе закрытия; созданная после закрытия переносится на следующий торговый день и истекает
+   * на его границе. Граница берётся из того же источника сессии, который разрешает исполнение, —
+   * расхождения «календарь против рынка» нет.
+   */
+  private static boolean dayExpired(Order order, Instant now, TradingSession session) {
+    if (session.open()) {
+      return false;
+    }
+    Instant closeAt = session.closeAt();
+    if (closeAt == null) {
+      // Источник не сообщает границу сессии: прежняя семантика «сессия закрыта — срок истёк».
+      return true;
+    }
+    return now.isAfter(closeAt) && order.createdAt().isBefore(closeAt);
+  }
+
+  /** Причина EXPIRED с таймстемпом границы сессии: «день закончился» ≠ «календарь не совпал». */
+  private static String expiryReason(Order order, TradingSession session) {
+    if (order.timeInForce() == TimeInForce.DAY && session.closeAt() != null) {
+      return "Срок действия DAY-заявки истёк на границе сессии " + session.closeAt();
+    }
+    return "Срок действия заявки истёк";
   }
 
   private Order reject(Order order, String reason) {

@@ -166,7 +166,9 @@ public class StubMarketDataProvider implements MarketDataProvider {
 
   @Override
   public TradingSession tradingSession(Instant at) {
-    return new TradingSession(1, "Основная сессия", true, at.plus(Duration.ofHours(1)));
+    // Заглушка всегда открыта: граница дня совпадает с nextSessionAt.
+    return new TradingSession(
+        1, "Основная сессия", true, at.plus(Duration.ofHours(1)), at.plus(Duration.ofHours(1)));
   }
 
   private static String key(String ticker, String classCode) {
