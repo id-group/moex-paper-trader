@@ -38,27 +38,15 @@
       "tokens": 12000
     }
   },
-  "lsp": {
-    "jdtls": {
-      "command": [
-        "C:\\Users\\id-gr\\.jdks\\liberica-full-25.0.4\\bin\\java.exe",
-        "-Declipse.application=org.eclipse.jdt.ls.core.id1",
-        "-Dosgi.bundles.defaultStartLevel=4",
-        "-Declipse.product=org.eclipse.jdt.ls.core.product",
-        "-Dosgi.checkConfiguration=true",
-        "-Dosgi.sharedConfiguration.area=C:\\Users\\id-gr\\.local\\share\\jdtls\\config_win",
-        "-Dosgi.sharedConfiguration.area.readOnly=true",
-        "-Dosgi.configuration.cascaded=true",
-        "-Xms1G",
-        "--add-modules=ALL-SYSTEM",
-        "--add-opens", "java.base/java.util=ALL-UNNAMED",
-        "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-        "-Djdk.xml.maxGeneralEntitySizeLimit=0",
-        "-Djdk.xml.totalEntitySizeLimit=0",
-        "-jar", "C:\\Users\\id-gr\\.local\\share\\jdtls\\plugins\\org.eclipse.equinox.launcher_1.8.0.v20260804-1928.jar",
-        "-data", "C:\\Users\\id-gr\\AppData\\Roaming\\jdtls\\data-moex-paper-trader"
-      ],
-      "extensions": [".java"]
+  "mcp": {
+    "servers": {
+      "jetbrains-idea": {
+        "type": "remote",
+        "url": "http://127.0.0.1:64411/stream",
+        "headers": {
+          "IJ_MCP_SERVER_PROJECT_PATH": "C:/developing/trading/moex-paper-trader"
+        }
+      }
     }
   }
 }

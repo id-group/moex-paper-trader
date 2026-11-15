@@ -52,7 +52,7 @@
 ## Инструменты агента
 
 - Структурный поиск и анализ — через ast-grep (синтаксические паттерны, сканы по проекту); поиск референсов — через grep по идентификаторам. grep не различает перегрузки в Java — влияние изменений проверяй сборкой (`./gradlew build`).
-- Диагностика поставляется нативным LSP: jdtls стартует OpenCode при открытии .java-файлов с JDK 25 (пришит через `lsp.jdtls.env` в opencode.json проекта, тот же рантайм, что и `MOEX_JAVA25_HOME`). Serena не используется.
+- Семантику и диагностику Java даёт MCP-сервер `jetbrains-idea` — встроенный MCP Server IntelliJ IDEA: streamable HTTP `http://127.0.0.1:<порт>/stream`, проект выбирается заголовком `IJ_MCP_SERVER_PROJECT_PATH` (конфиг в `opencode.json`). Ключевые инструменты: `get_file_problems`/`lint_files` (инспекции IDE), `analyze_calls` (иерархия вызовов), `search_symbol`, `get_symbol_info`, `rename_refactoring`, `build_project`. Порт может меняться при перезапуске IDE — свежий конфиг: Settings | AI | MCP Server → Copy HTTP Stream Config. Финальный гейт — по-прежнему `./gradlew build`; инструменты IDE его не заменяют.
 
 ## Эффективная работа без потери качества
 
@@ -68,7 +68,7 @@
 
 Загружай профильный skill перед соответствующей работой: `bcs-contract`, `bcs-portfolio`, `marketdata-modes`, `execution-model`, `java-conventions`, `testing`.
 
-- Serena (MCP, инструменты `initial_instructions`/`serena_repl`) — символьная навигация и рефакторинг по кодовой базе. Перед задачей на код читай инструкции (`initial_instructions`), затем используй `s.lsp.find_symbol`, `get_symbols_overview`, `find_referencing_symbols` вместо чтения целых файлов и grep'а; тела читай точечно (`include_body=True` только для нужных символов). Первый запуск в сессии может занимать минуты (старт jdtls).
+- JetBrains MCP (`jetbrains-idea`) — символьная навигация и рефакторинг по кодовой базе: `search_symbol`, `get_symbol_info`, `analyze_calls` (иерархия вызовов) вместо чтения целых файлов и grep'а; диагностика файла — `get_file_problems`/`lint_files`; безопасный rename — `rename_refactoring`. Требуется запущенная IntelliJ IDEA с открытым проектом.
 - `/precommit` — перед каждым коммитом; делегирует `spotlessCheck` и тесты субагенту `precommit-checker` на дешёвой модели, основная сессия сохраняет краткий отчёт и исправляет найденные проблемы. Покрытие и чистота git обязательны.
 - `/tdd <задача>` — red → green → refactor; `/coverage [пакет]` — JaCoCo; `/finish-stage N` — закрытие этапа и обновление прогресса.
 - Документация библиотек и платформ: Context7 (`resolve-library-id`, затем `query-docs`), когда задача зависит от их API/версий.
