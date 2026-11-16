@@ -49,7 +49,7 @@ class JpaTradeServiceImplTest {
   void setUp() {
     service =
         new JpaTradeServiceImpl(
-            new PortfolioProperties(ACCOUNT, new BigDecimal("1000000.00"), "RUB"),
+            new PortfolioProperties(ACCOUNT, new BigDecimal("1000000.00"), "RUB", false),
             fills,
             orders,
             instruments,

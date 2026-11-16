@@ -62,6 +62,12 @@ import ru.moex.papertrader.infra.repository.PositionRepository;
  * блокировки других активных заявок. Блокировка исполняемой заявки не учитывается: иначе стоимость
  * сделки или ГО считались бы дважды.
  *
+ * <p>Маржинальное плечо на сутки (флаг {@code emulator.portfolio.allow-stock-margin-buy}, по
+ * умолчанию выключен): акционная покупка при нехватке свободных средств допускается в пределах
+ * балансовой стоимости удерживаемых бумаг — кэш временно уходит в минус до зачисления выручки
+ * продаж по расчётам T+1 (модель брокера с внутридневным плечом). Плечо действует только на акции,
+ * расчёты T+1 не ускоряются.
+ *
  * <p>Заявка, сделка, позиция и баланс меняются в одной транзакции под пессимистичной блокировкой
  * строки счёта. Вариационная маржа и NAV — задача S3-5e.
  */
@@ -228,14 +234,25 @@ public class FillServiceImpl implements FillService {
 
       // ГО «до» считается по средней цене уже открытой позиции — формулы средней цены не дублируем.
       BigDecimal marginBefore = futures ? positionMargin(portfolio, instrument) : Money.ZERO;
-      if (!futures) {
+      // Маржинальное плечо на сутки: достаточность покупки по обеспечению проверяет сам портфель
+      // в buyOnMargin, повторная проверка по свободному кэшу здесь не выполняется.
+      boolean marginBuy = !futures && order.side() == Side.BUY && properties.allowStockMarginBuy();
+      if (!futures && !marginBuy) {
         checkStockAvailability(portfolio, order, effectivePrice, plan.quantity(), commission);
       }
 
       Fill fill =
-          order.side() == Side.BUY
-              ? portfolio.buy(instrument, plan.quantity(), effectivePrice, commission, now)
-              : portfolio.sell(instrument, plan.quantity(), effectivePrice, commission, now);
+          marginBuy
+              ? portfolio.buyOnMargin(
+                  instrument,
+                  plan.quantity(),
+                  effectivePrice,
+                  commission,
+                  now,
+                  otherOrderLocks(order))
+              : order.side() == Side.BUY
+                  ? portfolio.buy(instrument, plan.quantity(), effectivePrice, commission, now)
+                  : portfolio.sell(instrument, plan.quantity(), effectivePrice, commission, now);
       if (futures) {
         // Портфель — рабочая копия до persist: отказ по обеспечению откатывает транзакцию и не
         // сохраняет ни сделку, ни позицию, ни баланс.
@@ -319,6 +336,10 @@ public class FillServiceImpl implements FillService {
    *
    * <p>Покупка: {@code cash − account_balances.locked − блокировки других активных заявок} должно
    * покрывать {@code цена × количество + комиссия}. Продажа: позиции должно хватать на объём.
+   *
+   * <p>При включённом маржинальном плече ({@code emulator.portfolio.allow-stock-margin-buy})
+   * акционные покупки сюда не попадают: их достаточность по обеспечению проверяет {@link
+   * VirtualPortfolio#buyOnMargin}, этот метод остаётся для продаж и для режима без плеча.
    */
   private void checkStockAvailability(
       VirtualPortfolio portfolio,
@@ -390,12 +411,21 @@ public class FillServiceImpl implements FillService {
    * заявок. Собственная блокировка исполняемой заявки исключена.
    */
   private BigDecimal availableCash(VirtualPortfolio portfolio, Order order, String currency) {
-    BigDecimal otherOrderLocks =
-        orderLocksCalculator.calculate(orderService.activeOrders(), order.orderId()).total();
     return portfolio
         .cash(currency)
         .subtract(portfolio.lockedCash(currency))
-        .subtract(otherOrderLocks);
+        .subtract(otherOrderLocks(order));
+  }
+
+  /**
+   * Блокировки других активных заявок для маржинальной покупки.
+   *
+   * <p>Собственная блокировка исполняемой заявки исключена. Сумма передаётся в портфель один раз:
+   * там она вычитается из доступных средств вместе с балансовой блокировкой, повторного вычитания
+   * через {@link #availableCash} не происходит — иначе блокировки учитывались бы дважды.
+   */
+  private BigDecimal otherOrderLocks(Order order) {
+    return orderLocksCalculator.calculate(orderService.activeOrders(), order.orderId()).total();
   }
 
   /** ГО открытой фьючерсной позиции по средней цене; формула — {@link MarginCalculator}. */

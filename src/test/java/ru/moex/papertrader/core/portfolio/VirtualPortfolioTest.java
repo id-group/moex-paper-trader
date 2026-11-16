@@ -201,6 +201,84 @@ class VirtualPortfolioTest {
   }
 
   @Test
+  void marginBuyAllowsDebitWithinStockCollateral() {
+    // Плечо на сутки: кэш после покупки обеспечения уходит в ноль, покупка до зачисления
+    // T+1-выручки допускается, пока дебет покрыт стоимостью удерживаемых бумаг.
+    VirtualPortfolio portfolio = portfolioWith("1000000.00");
+    portfolio.buy(TestInstruments.sber(), 10000, HUNDRED, ZERO, NOW);
+
+    Fill fill =
+        portfolio.buyOnMargin(
+            TestInstruments.gazp(),
+            10,
+            new BigDecimal("20000.00"),
+            new BigDecimal("200.00"),
+            NOW,
+            ZERO);
+
+    assertThat(fill.quantity()).isEqualTo(10);
+    assertThat(portfolio.cash()).isEqualByComparingTo("-200200.00");
+    assertThat(portfolio.position(TestInstruments.gazp())).isPresent();
+  }
+
+  @Test
+  void marginBuyWithSufficientCashDebitsNormally() {
+    VirtualPortfolio portfolio = portfolioWith("1000000.00");
+
+    portfolio.buyOnMargin(TestInstruments.sber(), 10, HUNDRED, new BigDecimal("1.00"), NOW, ZERO);
+
+    assertThat(portfolio.cash()).isEqualByComparingTo("998999.00");
+  }
+
+  @Test
+  void marginBuyRejectsDebitExceedingStockCollateral() {
+    // 11 × 100.00 = 1100.00 при кэше 1000.00: дебет 100.00 не покрыт обеспечением (позиций нет).
+    VirtualPortfolio portfolio = portfolioWith("1000.00");
+
+    assertThatThrownBy(
+            () -> portfolio.buyOnMargin(TestInstruments.sber(), 11, HUNDRED, ZERO, NOW, ZERO))
+        .isInstanceOf(InvalidOrderException.class)
+        .hasMessageContaining("Недостаточно маржинального обеспечения");
+
+    assertThat(portfolio.cash()).isEqualByComparingTo("1000.00");
+    assertThat(portfolio.position(TestInstruments.sber())).isEmpty();
+  }
+
+  @Test
+  void marginBuyCountsOtherOrderLocksAgainstAvailableCash() {
+    // Блокировки других активных заявок уменьшают доступные средства: дебет растёт на их сумму
+    // и при превышении обеспечения заявка отклоняется.
+    VirtualPortfolio portfolio = portfolioWith("1000000.00");
+    portfolio.buy(TestInstruments.sber(), 10000, HUNDRED, ZERO, NOW);
+
+    assertThatThrownBy(
+            () ->
+                portfolio.buyOnMargin(
+                    TestInstruments.gazp(),
+                    10,
+                    new BigDecimal("20000.00"),
+                    new BigDecimal("200.00"),
+                    NOW,
+                    new BigDecimal("900000.00")))
+        .isInstanceOf(InvalidOrderException.class)
+        .hasMessageContaining("Недостаточно маржинального обеспечения");
+
+    assertThat(portfolio.cash()).isEqualByComparingTo("0.00");
+  }
+
+  @Test
+  void marginBuyRejectsFutures() {
+    VirtualPortfolio portfolio = portfolioWith("1000000.00");
+
+    assertThatThrownBy(
+            () ->
+                portfolio.buyOnMargin(
+                    futures(), 1, new BigDecimal("90000.00"), new BigDecimal("54.00"), NOW, ZERO))
+        .isInstanceOf(InvalidOrderException.class)
+        .hasMessageContaining("акций");
+  }
+
+  @Test
   void cashIsTrackedPerCurrency() {
     VirtualPortfolio portfolio =
         new VirtualPortfolio(

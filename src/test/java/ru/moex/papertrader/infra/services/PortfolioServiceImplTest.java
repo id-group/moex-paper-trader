@@ -34,7 +34,7 @@ class PortfolioServiceImplTest {
     PortfolioService service =
         new PortfolioServiceImpl(
             orderService,
-            new PortfolioProperties("PAPER-0001", new BigDecimal("1000000.00"), "RUB"),
+            new PortfolioProperties("PAPER-0001", new BigDecimal("1000000.00"), "RUB", false),
             CLOCK);
 
     PortfolioSnapshot snapshot = service.snapshot();
@@ -54,7 +54,7 @@ class PortfolioServiceImplTest {
     PortfolioService service =
         new PortfolioServiceImpl(
             orderService,
-            new PortfolioProperties("PAPER-0001", new BigDecimal("500"), "RUB"),
+            new PortfolioProperties("PAPER-0001", new BigDecimal("500"), "RUB", false),
             CLOCK);
 
     assertThat(service.snapshot().lockedCash()).isEqualByComparingTo("0");

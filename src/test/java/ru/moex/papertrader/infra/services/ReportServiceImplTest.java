@@ -68,7 +68,7 @@ class ReportServiceImplTest {
             FixedClock.at(NOW),
             new ReportProperties(
                 new BigDecimal("0.16"), new BigDecimal("0.30"), outputDir.toString()),
-            new PortfolioProperties(ACCOUNT, new BigDecimal("1000000"), "RUB"),
+            new PortfolioProperties(ACCOUNT, new BigDecimal("1000000"), "RUB", false),
             navDaily,
             fills,
             orders,

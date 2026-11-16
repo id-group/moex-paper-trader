@@ -40,7 +40,7 @@ class InMemoryOrderServiceImplTest {
         new InMemoryOrderServiceImpl(
             clock,
             marketData,
-            new PortfolioProperties("PAPER-0001", new BigDecimal("1000000"), "RUB"));
+            new PortfolioProperties("PAPER-0001", new BigDecimal("1000000"), "RUB", false));
   }
 
   @Test

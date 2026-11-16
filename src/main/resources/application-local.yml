@@ -31,6 +31,9 @@ emulator:
     account: PAPER-0001
     initial-cash: 1000000.00
     currency: RUB
+    # Маржинальное плечо на сутки для акционных покупок: ребаланс до зачисления T+1-выручки
+    # не отклоняется, если дебет покрыт стоимостью удерживаемых бумаг. Дефолт в коде — false.
+    allow-stock-margin-buy: true
   # Для локального запуска сеть не нужна: встроенная заглушка инструментов и котировок.
   # Для LIVE/RECORD задайте emulator.marketdata.mode и ALGO_PACK_TOKEN.
   marketdata:

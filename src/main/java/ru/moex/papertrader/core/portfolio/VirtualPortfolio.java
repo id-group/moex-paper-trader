@@ -100,6 +100,79 @@ public final class VirtualPortfolio {
   }
 
   /**
+   * Покупает акцию с допуском маржинального дебета на расчёты T+1.
+   *
+   * <p>Брокер с маржинальной торговлёй на сутки пропускает покупку до зачисления T+1-выручки: кэш
+   * временно уходит в минус в пределах обеспечения — по образцу вариационной маржи фьючерсов
+   * ({@link #applyVariationMargin}). Правило достаточности: если свободных средств не хватает,
+   * дебет {@code required − available} должен покрываться балансовой стоимостью long-позиций по
+   * акциям в валюте сделки ({@code количество × средняя цена}, без переоценки под рынок — оценка
+   * собственными данными портфеля). Фьючерсы не поддерживаются.
+   *
+   * @param otherOrderLocks блокировки других активных заявок вне портфеля; {@code null} — ноль
+   * @throws InvalidOrderException если дебет не покрыт обеспечением, инструмент — фьючерс или
+   *     параметры сделки некорректны
+   */
+  public Fill buyOnMargin(
+      Instrument instrument,
+      long quantity,
+      BigDecimal price,
+      BigDecimal commission,
+      Instant executedAt,
+      BigDecimal otherOrderLocks) {
+    validateTrade(instrument, quantity, price, commission, executedAt);
+    if (isFutures(instrument)) {
+      throw new InvalidOrderException("Маржинальная покупка поддерживается только для акций");
+    }
+    BigDecimal normalizedCommission = money(commission);
+    String currency = instrument.currency();
+    BigDecimal required =
+        money(price.multiply(BigDecimal.valueOf(quantity))).add(normalizedCommission);
+    BigDecimal lockedOutside = otherOrderLocks == null ? ZERO : money(otherOrderLocks);
+    BigDecimal available = availableCash(currency).subtract(lockedOutside);
+    if (available.compareTo(required) >= 0) {
+      debit(currency, required);
+    } else {
+      BigDecimal shortfall = required.subtract(available);
+      BigDecimal collateral = stockCollateral(currency);
+      if (collateral.compareTo(shortfall) < 0) {
+        throw new InvalidOrderException(
+            "Недостаточно маржинального обеспечения "
+                + currency
+                + ": дебет "
+                + shortfall
+                + " не покрыт стоимостью удерживаемых бумаг "
+                + collateral);
+      }
+      // Дебет в пределах обеспечения: списание без проверки свободного остатка, как у ВМ.
+      cash.merge(currency, required.negate(), BigDecimal::add);
+    }
+    applyPosition(instrument, quantity, price);
+    return new Fill(price, quantity, normalizedCommission, executedAt);
+  }
+
+  /**
+   * Балансовая стоимость long-позиций по акциям в валюте: обеспечение маржинального дебета.
+   *
+   * <p>Считается по средней цене позиции без переоценки под рынок — консервативная оценка
+   * собственными данными портфеля, без обращений к рыночным данным.
+   */
+  private BigDecimal stockCollateral(String currency) {
+    BigDecimal total = ZERO;
+    for (PortfolioPosition position : positions.values()) {
+      if (position.quantity() <= 0
+          || isFutures(position.instrument())
+          || !currency.equals(position.instrument().currency())) {
+        continue;
+      }
+      total =
+          total.add(
+              money(position.averagePrice().multiply(BigDecimal.valueOf(position.quantity()))));
+    }
+    return total;
+  }
+
+  /**
    * Продаёт инструмент по переданной цене. Для акций позиция не может стать короткой, для фьючерсов
    * продажа сверх остатка открывает короткую позицию.
    *
