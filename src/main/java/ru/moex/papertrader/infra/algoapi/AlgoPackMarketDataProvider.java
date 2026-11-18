@@ -129,8 +129,8 @@ public class AlgoPackMarketDataProvider implements MarketDataProvider {
         instrument.classCode(),
         depth,
         time,
-        levels(dto.bids()),
-        levels(dto.asks()));
+        levels(dto.bids(), instrument.lotSize()),
+        levels(dto.asks(), instrument.lotSize()));
   }
 
   @Override
@@ -169,7 +169,7 @@ public class AlgoPackMarketDataProvider implements MarketDataProvider {
               instrument.ticker(),
               instrument.classCode(),
               trade.price(),
-              trade.quantity(),
+              QuantityUnits.toShares(trade.quantity(), instrument.lotSize()),
               direction(trade.buySell())));
     }
     return List.copyOf(result);
@@ -183,7 +183,7 @@ public class AlgoPackMarketDataProvider implements MarketDataProvider {
       List<AlgoPackCandleDto> candles =
           algoPack.candles(instrument.ticker(), DAILY_INTERVAL, from, now);
       return AdvCalculator.averageDailyVolume(
-          candles.stream().map(AlgoPackCandleDto::volume).toList(), instrument.lotSize());
+          candles.stream().map(AlgoPackCandleDto::volume).toList());
     } catch (RuntimeException e) {
       log.warn("AlgoPack: ADV {} недоступен: {}", instrument.ticker(), e.getMessage());
       return BigDecimal.ZERO;
@@ -200,10 +200,13 @@ public class AlgoPackMarketDataProvider implements MarketDataProvider {
     return calendar.tradingDays(from, to);
   }
 
-  private static List<OrderBookSnapshot.Level> levels(List<AlgoPackOrderBookDto.Level> levels) {
+  private static List<OrderBookSnapshot.Level> levels(
+      List<AlgoPackOrderBookDto.Level> levels, BigDecimal lotSize) {
     List<OrderBookSnapshot.Level> result = new ArrayList<>(levels.size());
     for (AlgoPackOrderBookDto.Level level : levels) {
-      result.add(new OrderBookSnapshot.Level(level.price(), level.quantity()));
+      result.add(
+          new OrderBookSnapshot.Level(
+              level.price(), QuantityUnits.toShares(level.quantity(), lotSize)));
     }
     return result;
   }

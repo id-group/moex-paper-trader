@@ -60,7 +60,7 @@ class BksOrderApiTest extends BksApiTestSupport {
     request.put("clientOrderId", newUuid());
     request.put("side", "2");
     request.put("orderType", "1");
-    request.put("orderQuantity", 5);
+    request.put("orderQuantity", 50);
     request.put("ticker", "GAZP");
     request.put("classCode", "TQBR");
 

@@ -121,8 +121,8 @@ public class IssMarketDataProvider implements MarketDataProvider {
         instrument.classCode(),
         depth,
         time,
-        levels(dto.bids(), depth),
-        levels(dto.asks(), depth));
+        levels(dto.bids(), depth, instrument.lotSize()),
+        levels(dto.asks(), depth, instrument.lotSize()));
   }
 
   @Override
@@ -161,7 +161,7 @@ public class IssMarketDataProvider implements MarketDataProvider {
               instrument.ticker(),
               instrument.classCode(),
               trade.price(),
-              trade.quantity(),
+              QuantityUnits.toShares(trade.quantity(), instrument.lotSize()),
               direction(trade.buySell())));
     }
     return List.copyOf(result);
@@ -174,8 +174,7 @@ public class IssMarketDataProvider implements MarketDataProvider {
     try {
       List<IssCandleDto> candles =
           iss.candles(engine, market, board, instrument.ticker(), DAILY_INTERVAL, from, now);
-      return AdvCalculator.averageDailyVolume(
-          candles.stream().map(IssCandleDto::volume).toList(), instrument.lotSize());
+      return AdvCalculator.averageDailyVolume(candles.stream().map(IssCandleDto::volume).toList());
     } catch (RuntimeException e) {
       log.warn("ISS: ADV {} недоступен: {}", instrument.ticker(), e.getMessage());
       return BigDecimal.ZERO;
@@ -193,14 +192,16 @@ public class IssMarketDataProvider implements MarketDataProvider {
   }
 
   private static List<OrderBookSnapshot.Level> levels(
-      List<IssOrderBookDto.Level> levels, int depth) {
+      List<IssOrderBookDto.Level> levels, int depth, BigDecimal lotSize) {
     int limit = Math.max(depth, 0);
     List<OrderBookSnapshot.Level> result = new ArrayList<>(Math.min(levels.size(), limit));
     for (IssOrderBookDto.Level level : levels) {
       if (result.size() >= limit) {
         break;
       }
-      result.add(new OrderBookSnapshot.Level(level.price(), level.quantity()));
+      result.add(
+          new OrderBookSnapshot.Level(
+              level.price(), QuantityUnits.toShares(level.quantity(), lotSize)));
     }
     return result;
   }

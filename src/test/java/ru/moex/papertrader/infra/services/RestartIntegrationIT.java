@@ -163,7 +163,7 @@ class RestartIntegrationIT extends PostgresContainerSupport {
     assertThat(navRow.getMarketValue()).isEqualByComparingTo(first.nav().marketValue());
 
     // Нумерация продолжается: новая заявка получает номер больше всех прежних.
-    Order next = place(context, SBER, "TQBR", 1, "285.5");
+    Order next = place(context, SBER, "TQBR", 10, "285.5");
     assertThat(next.orderNum())
         .isGreaterThan(first.stockOrderNum())
         .isGreaterThan(first.futuresOrderNum());

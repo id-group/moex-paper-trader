@@ -28,8 +28,8 @@ class PortfolioServiceImplTest {
   void locksCashOfActiveBuyLimitOrders() {
     OrderService orderService = mock(OrderService.class);
     Order buy = order(OrderType.LIMIT, Side.BUY, new BigDecimal("100"), 10);
-    Order sell = order(OrderType.LIMIT, Side.SELL, new BigDecimal("200"), 5);
-    Order market = order(OrderType.MARKET, Side.BUY, null, 1);
+    Order sell = order(OrderType.LIMIT, Side.SELL, new BigDecimal("200"), 50);
+    Order market = order(OrderType.MARKET, Side.BUY, null, 10);
     when(orderService.activeOrders()).thenReturn(List.of(buy, sell, market));
     PortfolioService service =
         new PortfolioServiceImpl(

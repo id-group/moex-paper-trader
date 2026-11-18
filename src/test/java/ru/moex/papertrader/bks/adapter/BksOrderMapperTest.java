@@ -294,7 +294,7 @@ class BksOrderMapperTest {
 
   @Test
   void mapsAsyncResponses() {
-    Order order = order(OrderType.MARKET, Side.SELL, null, 5);
+    Order order = order(OrderType.MARKET, Side.SELL, null, 50);
 
     assertThat(mapper.toShortOrderResponse(order).status()).isEqualTo("OK");
     assertThat(mapper.toShortOrderResponse(order).clientOrderId())

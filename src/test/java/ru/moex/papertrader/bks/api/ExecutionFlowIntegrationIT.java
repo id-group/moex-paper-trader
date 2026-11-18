@@ -152,7 +152,7 @@ class ExecutionFlowIntegrationIT extends BksApiTestSupport {
   @Test
   void fokIsRejectedWhenBookCannotFillWholeVolume() {
     JsonNode created =
-        createOrder(limitOrder("SBER", "TQBR", "1", SBER_BOOK_VOLUME + 1, "286.00", null, "2"));
+        createOrder(limitOrder("SBER", "TQBR", "1", SBER_BOOK_VOLUME + 10, "286.00", null, "2"));
 
     assertThat(created.path("orderStatus").asText()).isEqualTo("8");
     assertThat(created.path("executedQuantity").asLong()).isZero();

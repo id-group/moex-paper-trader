@@ -106,7 +106,10 @@ class AlgoPackProviderHttpTest {
 
   @Test
   void advIsComputedFromDailyCandlesInShares() {
-    assertThat(provider.adv(TestInstruments.sber())).isEqualByComparingTo("117379043.33");
+    // Сумма volume трёх дневных свечей (1 012 689 + 1 001 739 + 33 199 285) / 3; объём уже в
+    // штуках,
+    // на lotSize не умножается: value / volume = 299 861 672.28 / 1 012 689 = 296.1 = цена свечи.
+    assertThat(provider.adv(TestInstruments.sber())).isEqualByComparingTo("11737904.33");
   }
 
   private static AlgoApiTestServer.Response ok(String body) {

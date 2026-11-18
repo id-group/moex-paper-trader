@@ -143,6 +143,26 @@ trade / read-only — как у БКС), обмен на access-токен (JWT-
 `IssMarketDataProvider` (fallback/справочник), `ReplayMarketDataProvider`,
 `RecordingMarketDataProvider` (декоратор LIVE).
 
+**ADR-11. Единицы количества: `core` — штуки, MOEX ISS/AlgoPack — лоты, пересчёт на границе.**
+- Модель `core` хранит объёмы в штуках: `Order.quantity`, `executedQuantity`, `Fill.quantity`,
+  `Position.quantity`, `OrderBookSnapshot.Level.quantity`, `Trade.quantity`. Это требование
+  контракта БКС (`orderQuantity`, `fills.quantity`, `order-book` — «шт.»); `*Lots` в ответах БКС
+  выводятся делением на `lotSize` в `bks/adapter`.
+- Биржа отдаёт `QUANTITY` стакана и сделок **в лотах** (проверено на живых данных GAZP/HYDR/SNGS/
+  FEES: `VALUE = QUANTITY × PRICE × LOTSIZE` выполняется для 100 % строк, `QUANTITY × PRICE` — ни
+  для одной), а `volume` свечей и `VOLTODAY` — **в штуках** (`value / volume` = средневзвешенная
+  цена сделки и лежит внутри диапазона свечи только без пересчёта на лотность).
+- Значит пересчёт `лоты → штуки` (`QuantityUnits.toShares`) обязателен в `IssMarketDataProvider`
+  и `AlgoPackMarketDataProvider` (стакан и сделки), а `AdvCalculator` суммирует объём свечей **без**
+  умножения на `lotSize`. `*Client` и DTO в `infra/algoapi/dto` остаются зеркалом ответа биржи —
+  пересчёт не должен протекать в транспортный слой.
+- Обоснование границы: иначе `MatchingEngine` видит ликвидность, заниженную в `lotSize` раз
+  (FEES — в 10 000), исполняет заявки по крупице за тик и фишлами, некратными лоту, а ADV завышен
+  в `lotSize` раз, из-за чего `AdvLiquidityPolicy` и тиры `SpecSlippageModel` теряют смысл.
+- Сопутствующее правило: `Order.accept` отклоняет `quantity` нецелое число лотов
+  (`InvalidOrderException` → HTTP 400), как реальный брокер; `lotSize <= 1` (фьючерсы, лот из одной
+  бумаги) проходит проверку автоматически.
+
 ## 7. Исполнение ордеров (core/execution)
 
 **ADR-9. Точная модель по спецификации владельца (упрощения запрещены):**

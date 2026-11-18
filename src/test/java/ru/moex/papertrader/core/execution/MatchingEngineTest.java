@@ -51,29 +51,30 @@ class MatchingEngineTest {
 
   @Test
   void marketBuyWalksSeveralLevels() {
-    Order order = order(Side.BUY, OrderType.MARKET, null, 5, TimeInForce.DAY);
+    Order order = order(Side.BUY, OrderType.MARKET, null, 50, TimeInForce.DAY);
 
     MatchResult result =
-        engine.match(order, book(List.of(), List.of(level("100.00", 3), level("101.00", 10))), ADV);
+        engine.match(
+            order, book(List.of(), List.of(level("100.00", 30), level("101.00", 100))), ADV);
 
-    assertThat(result.fills()).extracting(MatchFill::quantity).containsExactly(3L, 2L);
+    assertThat(result.fills()).extracting(MatchFill::quantity).containsExactly(30L, 20L);
     assertThat(result.fills().get(0).price()).isEqualByComparingTo("100.10");
     assertThat(result.fills().get(1).price()).isEqualByComparingTo("101.101");
   }
 
   @Test
   void marketPartialFillCancelsRemainder() {
-    Order order = order(Side.BUY, OrderType.MARKET, null, 5, TimeInForce.DAY);
+    Order order = order(Side.BUY, OrderType.MARKET, null, 50, TimeInForce.DAY);
 
-    MatchResult result = engine.match(order, book(List.of(), List.of(level("100.00", 3))), ADV);
+    MatchResult result = engine.match(order, book(List.of(), List.of(level("100.00", 30))), ADV);
 
-    assertThat(result.quantity()).isEqualTo(3);
+    assertThat(result.quantity()).isEqualTo(30);
     assertThat(result.remainderAction()).isEqualTo(MatchResult.RemainderAction.CANCEL);
   }
 
   @Test
   void marketWithoutCounterpartyIsRejected() {
-    Order order = order(Side.BUY, OrderType.MARKET, null, 5, TimeInForce.DAY);
+    Order order = order(Side.BUY, OrderType.MARKET, null, 50, TimeInForce.DAY);
 
     MatchResult result = engine.match(order, book(List.of(), List.of()), ADV);
 
@@ -113,19 +114,19 @@ class MatchingEngineTest {
 
   @Test
   void limitPartialFillKeepsRemainderActive() {
-    Order order = order(Side.BUY, OrderType.LIMIT, "100.00", 5, TimeInForce.DAY);
+    Order order = order(Side.BUY, OrderType.LIMIT, "100.00", 50, TimeInForce.DAY);
 
-    MatchResult result = engine.match(order, book(List.of(), List.of(level("100.00", 3))), ADV);
+    MatchResult result = engine.match(order, book(List.of(), List.of(level("100.00", 30))), ADV);
 
-    assertThat(result.quantity()).isEqualTo(3);
+    assertThat(result.quantity()).isEqualTo(30);
     assertThat(result.remainderAction()).isEqualTo(MatchResult.RemainderAction.KEEP);
   }
 
   @Test
   void fokRejectsWhenVolumeIsInsufficient() {
-    Order order = order(Side.BUY, OrderType.LIMIT, "100.00", 5, TimeInForce.FILL_OR_KILL);
+    Order order = order(Side.BUY, OrderType.LIMIT, "100.00", 50, TimeInForce.FILL_OR_KILL);
 
-    MatchResult result = engine.match(order, book(List.of(), List.of(level("100.00", 3))), ADV);
+    MatchResult result = engine.match(order, book(List.of(), List.of(level("100.00", 30))), ADV);
 
     assertThat(result.rejected()).isTrue();
     assertThat(result.fills()).isEmpty();
@@ -133,12 +134,12 @@ class MatchingEngineTest {
 
   @Test
   void fokFillsWhenFullVolumeIsAvailable() {
-    Order order = order(Side.BUY, OrderType.LIMIT, "100.00", 5, TimeInForce.FILL_OR_KILL);
+    Order order = order(Side.BUY, OrderType.LIMIT, "100.00", 50, TimeInForce.FILL_OR_KILL);
 
-    MatchResult result = engine.match(order, book(List.of(), List.of(level("100.00", 5))), ADV);
+    MatchResult result = engine.match(order, book(List.of(), List.of(level("100.00", 50))), ADV);
 
     assertThat(result.rejected()).isFalse();
-    assertThat(result.quantity()).isEqualTo(5);
+    assertThat(result.quantity()).isEqualTo(50);
   }
 
   @Test
@@ -237,12 +238,12 @@ class MatchingEngineTest {
     MatchingEngine secondReplay =
         new MatchingEngine(
             new SpecSlippageModel(42), AdvLiquidityPolicy.rejectAtDefaultThreshold());
-    OrderBookSnapshot book = book(List.of(), List.of(level("100.00", 3), level("101.00", 10)));
+    OrderBookSnapshot book = book(List.of(), List.of(level("100.00", 30), level("101.00", 100)));
 
     MatchResult first =
-        firstReplay.match(order(Side.BUY, OrderType.MARKET, null, 5, TimeInForce.DAY), book, ADV);
+        firstReplay.match(order(Side.BUY, OrderType.MARKET, null, 50, TimeInForce.DAY), book, ADV);
     MatchResult second =
-        secondReplay.match(order(Side.BUY, OrderType.MARKET, null, 5, TimeInForce.DAY), book, ADV);
+        secondReplay.match(order(Side.BUY, OrderType.MARKET, null, 50, TimeInForce.DAY), book, ADV);
 
     assertThat(first.fills()).isEqualTo(second.fills());
   }

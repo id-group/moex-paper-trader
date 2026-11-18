@@ -51,7 +51,7 @@ class OrderTest {
   void marketOrderIgnoresPrice() {
     Order order =
         Order.accept(
-            newOrder(OrderType.MARKET, new BigDecimal("999"), 1),
+            newOrder(OrderType.MARKET, new BigDecimal("999"), 10),
             TestInstruments.sber(),
             "id",
             1,
@@ -74,6 +74,51 @@ class OrderTest {
                     NOW))
         .isInstanceOf(InvalidOrderException.class)
         .hasMessageContaining("orderQuantity");
+  }
+
+  @Test
+  void rejectsQuantityNotMultipleOfLotSize() {
+    // lotSize SBER = 10, поэтому 15 штук нереальны: брокер принимает только целые лоты.
+    assertThatThrownBy(
+            () ->
+                Order.accept(
+                    newOrder(OrderType.LIMIT, BigDecimal.ONE, 15),
+                    TestInstruments.sber(),
+                    "id",
+                    1,
+                    "PAPER-0001",
+                    NOW))
+        .isInstanceOf(InvalidOrderException.class)
+        .hasMessageContaining("лота")
+        .hasMessageContaining("10");
+  }
+
+  @Test
+  void acceptsQuantityOfWholeLots() {
+    Order order =
+        Order.accept(
+            newOrder(OrderType.LIMIT, BigDecimal.ONE, 30),
+            TestInstruments.sber(),
+            "id",
+            1,
+            "PAPER-0001",
+            NOW);
+
+    assertThat(order.quantity()).isEqualTo(30);
+  }
+
+  @Test
+  void acceptsAnyIntegerQuantityForLotSizeOne() {
+    Order order =
+        Order.accept(
+            newOrder(OrderType.LIMIT, BigDecimal.ONE, 7),
+            TestInstruments.siu6(),
+            "id",
+            1,
+            "PAPER-0001",
+            NOW);
+
+    assertThat(order.quantity()).isEqualTo(7);
   }
 
   @Test
@@ -129,7 +174,7 @@ class OrderTest {
   void cancelsActiveOrderAndForbidsSecondCancellation() {
     Order order =
         Order.accept(
-            newOrder(OrderType.LIMIT, BigDecimal.TEN, 1),
+            newOrder(OrderType.LIMIT, BigDecimal.TEN, 10),
             TestInstruments.sber(),
             "id",
             1,
@@ -413,12 +458,12 @@ class OrderTest {
 
   @Test
   void averagePriceRoundsHalfUpToSixDigits() {
-    Order order = accepted(3, new BigDecimal("100"));
-    order.applyFill(new Fill(new BigDecimal("100.000000"), 1, BigDecimal.ZERO, FILL_TIME));
+    Order order = accepted(30, new BigDecimal("100"));
+    order.applyFill(new Fill(new BigDecimal("100.000000"), 10, BigDecimal.ZERO, FILL_TIME));
 
-    order.applyFill(new Fill(new BigDecimal("100.000001"), 2, BigDecimal.ZERO, FILL_TIME));
+    order.applyFill(new Fill(new BigDecimal("100.000001"), 20, BigDecimal.ZERO, FILL_TIME));
 
-    // (1 × 100.000000 + 2 × 100.000001) / 3 = 100.000000666… → 100.000001 (HALF_UP, масштаб 6).
+    // (10 × 100.000000 + 20 × 100.000001) / 30 = 100.000000666… → 100.000001 (HALF_UP, масштаб 6).
     assertThat(order.averagePrice()).isEqualTo(new BigDecimal("100.000001"));
   }
 
@@ -438,8 +483,8 @@ class OrderTest {
 
   @Test
   void rejectsFillForFilledOrder() {
-    Order order = accepted(1, new BigDecimal("285.50"));
-    order.applyFill(new Fill(new BigDecimal("285.50"), 1, BigDecimal.ZERO, FILL_TIME));
+    Order order = accepted(10, new BigDecimal("285.50"));
+    order.applyFill(new Fill(new BigDecimal("285.50"), 10, BigDecimal.ZERO, FILL_TIME));
 
     assertThatThrownBy(
             () ->

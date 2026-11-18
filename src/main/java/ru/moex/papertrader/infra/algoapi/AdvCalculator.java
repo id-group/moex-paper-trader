@@ -7,8 +7,11 @@ import java.util.List;
 /**
  * Расчёт ADV — среднего дневного объёма торгов в штуках — по дневным свечам.
  *
- * <p>Объём свечи задаётся в лотах, поэтому умножается на размер лота инструмента. Среднее считается
- * по числу полученных дневных свечей (фактических торговых дней), масштаб 2, округление {@code
+ * <p>MOEX ISS и AlgoPack отдают {@code volume} свечи <b>в штуках</b>, поэтому пересчёт по лотности
+ * не выполняется (проверка на живых данных: для дневной свечи FEES {@code value / volume = 0.0671}
+ * при {@code LAST = 0.0678}, то есть объём уже указан в штуках; для {@code lotSize > 1} умножение
+ * на лотность выводило бы среднюю цену сделки за границы диапазона свечи). Среднее считается по
+ * числу полученных дневных свечей (фактических торговых дней), масштаб 2, округление {@code
  * HALF_UP}; нет данных — ноль.
  */
 final class AdvCalculator {
@@ -18,21 +21,19 @@ final class AdvCalculator {
   private AdvCalculator() {}
 
   /**
-   * @param volumesInLots объёмы дневных свечей в лотах
-   * @param lotSize размер лота в штуках
+   * @param volumesInShares объёмы дневных свечей в штуках
    */
-  static BigDecimal averageDailyVolume(List<BigDecimal> volumesInLots, BigDecimal lotSize) {
-    if (volumesInLots == null || volumesInLots.isEmpty()) {
+  static BigDecimal averageDailyVolume(List<BigDecimal> volumesInShares) {
+    if (volumesInShares == null || volumesInShares.isEmpty()) {
       return BigDecimal.ZERO;
     }
-    BigDecimal lot = lotSize == null || lotSize.signum() <= 0 ? BigDecimal.ONE : lotSize;
     BigDecimal total = BigDecimal.ZERO;
     int days = 0;
-    for (BigDecimal volume : volumesInLots) {
+    for (BigDecimal volume : volumesInShares) {
       if (volume == null) {
         continue;
       }
-      total = total.add(volume.multiply(lot));
+      total = total.add(volume);
       days++;
     }
     if (days == 0) {

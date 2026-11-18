@@ -167,9 +167,11 @@ class AlgoPackMarketDataProviderTest {
 
     assertThat(book.depth()).isEqualTo(2);
     assertThat(book.dateTime()).isEqualTo(NOW);
-    assertThat(book.bidVolume()).isEqualTo(4207);
-    assertThat(book.askVolume()).isEqualTo(1200);
+    // QUANTITY стакана AlgoPack — в лотах, lotSize SBER = 10: 1510 + 2697 лотов = 42070 штук.
+    assertThat(book.bidVolume()).isEqualTo(42070);
+    assertThat(book.askVolume()).isEqualTo(12000);
     assertThat(book.bids().get(0).price()).isEqualByComparingTo("298.88");
+    assertThat(book.bids().get(0).quantity()).isEqualTo(15100L);
   }
 
   @Test
@@ -228,8 +230,34 @@ class AlgoPackMarketDataProviderTest {
         .extracting(Trade::direction)
         .containsExactly(TradeDirection.BUY, TradeDirection.SELL, TradeDirection.BUY);
     assertThat(trades.get(0).price()).isEqualByComparingTo("298.89");
-    assertThat(trades.get(0).quantity()).isEqualTo(10);
+    // QUANTITY сделки AlgoPack — в лотах, lotSize SBER = 10: 10 лотов = 100 штук.
+    assertThat(trades.get(0).quantity()).isEqualTo(100);
+    assertThat(trades.get(1).quantity()).isEqualTo(200);
     assertThat(trades.get(0).ticker()).isEqualTo("SBER");
+  }
+
+  @Test
+  void tradesVolumeFromCandlesIsNotRescaled() {
+    Instant from = Instant.parse("2026-10-01T00:00:00Z");
+    Instant to = Instant.parse("2026-10-02T00:00:00Z");
+    when(algoPack.candles("SBER", "60", from, to))
+        .thenReturn(
+            List.of(
+                new AlgoPackCandleDto(
+                    from,
+                    from.plusSeconds(3599),
+                    new BigDecimal("298.00"),
+                    new BigDecimal("299.00"),
+                    new BigDecimal("300.00"),
+                    new BigDecimal("297.00"),
+                    new BigDecimal("298000"),
+                    new BigDecimal("1000"))));
+
+    CandleSeries series = provider.candles(TestInstruments.sber(), from, to, TimeFrame.H1);
+
+    // Объём свечи AlgoPack уже в штуках (VWAP = value / volume лежит внутри [low, high]),
+    // поэтому провайдер не должен перемасштабировать его на lotSize.
+    assertThat(series.bars().get(0).volume()).isEqualByComparingTo("1000");
   }
 
   @Test
@@ -240,7 +268,8 @@ class AlgoPackMarketDataProviderTest {
 
     BigDecimal adv = provider.adv(TestInstruments.sber());
 
-    assertThat(adv).isEqualByComparingTo("15000.00");
+    // AlgoPack отдаёт volume свечи в штуках: ADV — среднее без умножения на lotSize.
+    assertThat(adv).isEqualByComparingTo("1500.00");
     assertThat(adv.scale()).isEqualTo(2);
   }
 

@@ -374,7 +374,7 @@ class ExecutionServiceImplTest {
   @Test
   void tickContinuesWhenOneOrderFails() {
     Order broken = order("ORD-1", OrderType.LIMIT, TimeInForce.DAY, 10, "285.50");
-    Order second = order("ORD-2", OrderType.LIMIT, TimeInForce.DAY, 5, "100.00");
+    Order second = order("ORD-2", OrderType.LIMIT, TimeInForce.DAY, 50, "100.00");
     when(marketDataProvider.tradingSession(NOW)).thenReturn(OPEN);
     when(orderService.activeOrders()).thenReturn(List.of(broken, second));
     when(orderService.get(OrderIdType.EXCHANGE, broken.orderId()))

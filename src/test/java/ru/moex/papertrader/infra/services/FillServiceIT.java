@@ -230,43 +230,44 @@ class FillServiceIT extends PostgresContainerSupport {
 
   @Test
   void sellCreditsCashMinusCommissionAndReducesPosition() {
-    Order buy = placeStock(Side.BUY, "100", 10);
-    fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 10, new BigDecimal("100"));
+    Order buy = placeStock(Side.BUY, "100", 40);
+    fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 40, new BigDecimal("100"));
     flushAndClear();
     BigDecimal cashBeforeSell = cash();
 
-    Order sell = placeStock(Side.SELL, "110", 3);
+    Order sell = placeStock(Side.SELL, "110", 30);
     flushAndClear();
 
-    Order filled = fillService.fill(OrderIdType.EXCHANGE, sell.orderId(), 3, new BigDecimal("110"));
+    Order filled =
+        fillService.fill(OrderIdType.EXCHANGE, sell.orderId(), 30, new BigDecimal("110"));
     flushAndClear();
 
     FillEntity storedFill = fills.findByOrderId(sell.orderId()).getFirst();
-    assertThat(storedFill.getCommission()).isEqualByComparingTo("0.33");
+    assertThat(storedFill.getCommission()).isEqualByComparingTo("3.30");
     assertThat(filled.status()).isEqualTo(OrderStatus.FILLED);
-    assertThat(cash()).isEqualByComparingTo(cashBeforeSell.add(new BigDecimal("329.67")));
-    assertThat(position(SBER, TQBR).orElseThrow().getQuantity()).isEqualTo(7);
+    assertThat(cash()).isEqualByComparingTo(cashBeforeSell.add(new BigDecimal("3296.70")));
+    assertThat(position(SBER, TQBR).orElseThrow().getQuantity()).isEqualTo(10);
     assertThat(orderService.get(OrderIdType.EXCHANGE, sell.orderId()).status())
         .isEqualTo(OrderStatus.FILLED);
   }
 
   @Test
   void sellAbovePositionIsRejectedAndChangesNothing() {
-    Order buy = placeStock(Side.BUY, "100", 7);
-    fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 7, new BigDecimal("100"));
+    Order buy = placeStock(Side.BUY, "100", 70);
+    fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 70, new BigDecimal("100"));
     flushAndClear();
     BigDecimal cashBefore = cash();
 
-    Order sell = placeStock(Side.SELL, "110", 8);
+    Order sell = placeStock(Side.SELL, "110", 80);
     flushAndClear();
 
     assertThatThrownBy(
-            () -> fillService.fill(OrderIdType.EXCHANGE, sell.orderId(), 8, new BigDecimal("110")))
+            () -> fillService.fill(OrderIdType.EXCHANGE, sell.orderId(), 80, new BigDecimal("110")))
         .isInstanceOf(InvalidOrderException.class);
 
     flushAndClear();
     assertThat(cash()).isEqualByComparingTo(cashBefore);
-    assertThat(position(SBER, TQBR).orElseThrow().getQuantity()).isEqualTo(7);
+    assertThat(position(SBER, TQBR).orElseThrow().getQuantity()).isEqualTo(70);
     Order loaded = orderService.get(OrderIdType.EXCHANGE, sell.orderId());
     assertThat(loaded.status()).isEqualTo(OrderStatus.NEW);
     assertThat(loaded.executedQuantity()).isZero();
@@ -322,30 +323,30 @@ class FillServiceIT extends PostgresContainerSupport {
 
   @Test
   void completedOrderCannotBeFilledAgain() {
-    Order buy = placeStock(Side.BUY, "100", 1);
-    fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 1, new BigDecimal("100"));
+    Order buy = placeStock(Side.BUY, "100", 10);
+    fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 10, new BigDecimal("100"));
     flushAndClear();
 
     assertThatThrownBy(
-            () -> fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 1, new BigDecimal("100")))
+            () -> fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 10, new BigDecimal("100")))
         .isInstanceOf(InvalidOrderException.class);
   }
 
   @Test
   void canceledOrderCannotBeFilled() {
-    Order buy = placeStock(Side.BUY, "100", 1);
+    Order buy = placeStock(Side.BUY, "100", 10);
     flushAndClear();
     orderService.cancel(OrderIdType.EXCHANGE, buy.orderId());
     flushAndClear();
 
     assertThatThrownBy(
-            () -> fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 1, new BigDecimal("100")))
+            () -> fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 10, new BigDecimal("100")))
         .isInstanceOf(InvalidOrderException.class);
   }
 
   @Test
   void nonPositiveFillQuantityIsRejected() {
-    Order buy = placeStock(Side.BUY, "100", 2);
+    Order buy = placeStock(Side.BUY, "100", 10);
     flushAndClear();
 
     assertThatThrownBy(
@@ -355,11 +356,11 @@ class FillServiceIT extends PostgresContainerSupport {
 
   @Test
   void fillQuantityAboveRemainingIsRejected() {
-    Order buy = placeStock(Side.BUY, "100", 2);
+    Order buy = placeStock(Side.BUY, "100", 20);
     flushAndClear();
 
     assertThatThrownBy(
-            () -> fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 3, new BigDecimal("100")))
+            () -> fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 30, new BigDecimal("100")))
         .isInstanceOf(InvalidOrderException.class);
   }
 
@@ -608,11 +609,11 @@ class FillServiceIT extends PostgresContainerSupport {
     ensureInstrument(FUTURES_TICKER, FUTURES_CLASS_CODE, "FUTURES", "1", "1");
     setBalance("-1000", "18200");
     setPosition(FUTURES_TICKER, FUTURES_CLASS_CODE, -2, "91000");
-    Order buy = placeStock(Side.BUY, "100", 1);
+    Order buy = placeStock(Side.BUY, "100", 10);
     flushAndClear();
 
     assertThatThrownBy(
-            () -> fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 1, new BigDecimal("100")))
+            () -> fillService.fill(OrderIdType.EXCHANGE, buy.orderId(), 10, new BigDecimal("100")))
         .isInstanceOf(InvalidOrderException.class)
         .hasMessageContaining("Недостаточно");
 
@@ -654,17 +655,18 @@ class FillServiceIT extends PostgresContainerSupport {
   void stockSellWithNegativeCashCreditsProceedsAndReducesPosition() {
     ensureInstrument(SBER, TQBR, "STOCK", "10", "0.01");
     setBalance("-500", "0");
-    setPosition(SBER, TQBR, 10, "100");
-    Order sell = placeStock(Side.SELL, "110", 4);
+    setPosition(SBER, TQBR, 40, "100");
+    Order sell = placeStock(Side.SELL, "110", 30);
     flushAndClear();
 
-    Order filled = fillService.fill(OrderIdType.EXCHANGE, sell.orderId(), 4, new BigDecimal("110"));
+    Order filled =
+        fillService.fill(OrderIdType.EXCHANGE, sell.orderId(), 30, new BigDecimal("110"));
     flushAndClear();
 
-    // 4 x 110 - 0.1% = 439.56: продажа имеющихся акций увеличивает отрицательный кэш.
+    // 30 x 110 - 0.1% = 3296.70: продажа имеющихся акций увеличивает отрицательный кэш.
     assertThat(filled.status()).isEqualTo(OrderStatus.FILLED);
-    assertThat(cash()).isEqualByComparingTo("-60.44");
-    assertThat(position(SBER, TQBR).orElseThrow().getQuantity()).isEqualTo(6);
+    assertThat(cash()).isEqualByComparingTo("2796.70");
+    assertThat(position(SBER, TQBR).orElseThrow().getQuantity()).isEqualTo(10);
   }
 
   @Test

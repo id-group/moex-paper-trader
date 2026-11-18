@@ -107,7 +107,7 @@ class InMemoryOrderServiceImplTest {
   @Test
   void searchFiltersByTickerSideAndStatus() {
     Order sberBuy = service.place(limitOrder(UUID.randomUUID(), "SBER", Side.BUY, "285.50", 10));
-    service.place(limitOrder(UUID.randomUUID(), "GAZP", Side.SELL, "165.20", 5));
+    service.place(limitOrder(UUID.randomUUID(), "GAZP", Side.SELL, "165.20", 50));
     Order sberSell = service.place(limitOrder(UUID.randomUUID(), "SBER", Side.SELL, "290", 10));
     service.cancel(OrderIdType.CLIENT, sberSell.clientOrderId().toString());
 

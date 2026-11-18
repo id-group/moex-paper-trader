@@ -107,7 +107,7 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
 
   @Test
   void restoresMarketOrderWithoutPrice() {
-    Order placed = service.place(marketOrder("GAZP", Side.SELL, 5));
+    Order placed = service.place(marketOrder("GAZP", Side.SELL, 50));
     flushAndClear();
 
     Order loaded = service.get(OrderIdType.EXCHANGE, placed.orderId());
@@ -119,7 +119,7 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
   @Test
   void searchFiltersSortsAndPaginates() {
     Order sber = service.place(limitOrder("SBER", Side.BUY, "285.5", 10));
-    Order gazp = service.place(limitOrder("GAZP", Side.BUY, "165.2", 5));
+    Order gazp = service.place(limitOrder("GAZP", Side.BUY, "165.2", 50));
     Order lkoh = service.place(limitOrder("LKOH", Side.BUY, "7100", 1));
     flushAndClear();
 
@@ -292,7 +292,7 @@ class JpaOrderServiceImplIT extends PostgresContainerSupport {
   @Test
   void activeOrdersContainOnlyActiveOrders() {
     Order active = service.place(limitOrder("SBER", Side.BUY, "285.5", 10));
-    Order canceled = service.place(limitOrder("GAZP", Side.BUY, "165.2", 5));
+    Order canceled = service.place(limitOrder("GAZP", Side.BUY, "165.2", 50));
     flushAndClear();
     service.cancel(OrderIdType.CLIENT, canceled.clientOrderId().toString());
     flushAndClear();

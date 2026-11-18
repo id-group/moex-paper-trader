@@ -81,7 +81,7 @@ class OrderMapperTest {
 
   @Test
   void restoresCanceledOrderWithUpdatedAt() {
-    Order original = accepted(OrderType.LIMIT, Side.SELL, new BigDecimal("101.25"), 3);
+    Order original = accepted(OrderType.LIMIT, Side.SELL, new BigDecimal("101.25"), 30);
     original.cancel(CANCELLED);
     OrderEntity entity = mapper.toEntity(original, ACCOUNT, INSTRUMENT_ID);
 
@@ -94,7 +94,7 @@ class OrderMapperTest {
 
   @Test
   void restoresMarketOrderWithoutPrice() {
-    Order original = accepted(OrderType.MARKET, Side.BUY, null, 5);
+    Order original = accepted(OrderType.MARKET, Side.BUY, null, 50);
     assertThat(original.price()).isNull();
 
     Order restored =

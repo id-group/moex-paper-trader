@@ -130,6 +130,9 @@ public final class Order {
       // Срок действия относится только к GTD: для DAY/FOK поле контракта игнорируется.
       expiryDate = null;
     }
+    // Кратность лоту проверяется последней: сначала — структурные ошибки контракта
+    // (orderType, timeInForce, price, expiryDate), затем уже семантика объёма.
+    requireWholeLots(request.quantity(), instrument);
     return new Order(
         orderNum,
         request.clientOrderId(),
@@ -144,6 +147,30 @@ public final class Order {
         clientCode,
         request.strategyId(),
         now);
+  }
+
+  /**
+   * Требует, чтобы объём заявки состоял из целых лотов: биржа и брокер не выставляют на рынок
+   * дробные лоты, а {@code orderQuantity} контракта БКС — количество в штуках.
+   *
+   * <p>{@code lotSize <= 1} (фьючерсы, инструменты с лотом из одной бумаги) проверку проходят
+   * автоматически.
+   */
+  private static void requireWholeLots(long quantity, Instrument instrument) {
+    BigDecimal lotSize = instrument.lotSize();
+    if (lotSize == null || lotSize.compareTo(BigDecimal.ONE) <= 0) {
+      return;
+    }
+    BigDecimal lots = BigDecimal.valueOf(quantity);
+    if (lots.remainder(lotSize).signum() != 0) {
+      throw new InvalidOrderException(
+          "orderQuantity "
+              + quantity
+              + " должен быть кратен размеру лота "
+              + lotSize.toPlainString()
+              + " по инструменту "
+              + instrument.ticker());
+    }
   }
 
   /**

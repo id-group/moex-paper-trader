@@ -153,7 +153,28 @@ class IssMarketDataProviderTest {
     assertThat(book.bids()).hasSize(2);
     assertThat(book.asks()).hasSize(2);
     assertThat(book.dateTime()).isEqualTo(NOW);
-    assertThat(book.bidVolume()).isEqualTo(30);
+    // QUANTITY стакана ISS — в лотах, lotSize SBER = 10, поэтому в штуках 30 лотов = 300.
+    assertThat(book.bidVolume()).isEqualTo(300);
+  }
+
+  @Test
+  void orderBookConvertsIssLotQuantitiesToShares() {
+    when(iss.orderBook("stock", "shares", "TQBR", "SBER"))
+        .thenReturn(
+            new IssOrderBookDto(
+                "SBER",
+                "TQBR",
+                null,
+                null,
+                List.of(new IssOrderBookDto.Level(new BigDecimal("298.88"), 1510)),
+                List.of(new IssOrderBookDto.Level(new BigDecimal("298.90"), 1200))));
+
+    OrderBookSnapshot book = provider.orderBook(TestInstruments.sber(), 10);
+
+    assertThat(book.bids().get(0).quantity()).isEqualTo(15100L);
+    assertThat(book.asks().get(0).quantity()).isEqualTo(12000L);
+    assertThat(book.bidVolume()).isEqualTo(15100L);
+    assertThat(book.askVolume()).isEqualTo(12000L);
   }
 
   @Test
@@ -223,7 +244,10 @@ class IssMarketDataProviderTest {
     assertThat(trades)
         .extracting(Trade::direction)
         .containsExactly(TradeDirection.SELL, TradeDirection.BUY);
-    assertThat(trades.get(0).quantity()).isEqualTo(10);
+    // QUANTITY сделки ISS — в лотах (живые данные: VALUE = QUANTITY × PRICE × LOTSIZE),
+    // а Trade.quantity объявлен в штуках, поэтому 10 лотов × lotSize 10 = 100.
+    assertThat(trades.get(0).quantity()).isEqualTo(100);
+    assertThat(trades.get(1).quantity()).isEqualTo(50);
   }
 
   @Test
@@ -234,7 +258,9 @@ class IssMarketDataProviderTest {
 
     BigDecimal adv = provider.adv(TestInstruments.sber());
 
-    assertThat(adv).isEqualByComparingTo("20000.00");
+    // ISS отдаёт volume свечи уже в штуках (проверено на живых данных: value / volume = close),
+    // поэтому ADV — среднее арифметическое без умножения на lotSize.
+    assertThat(adv).isEqualByComparingTo("2000.00");
     assertThat(adv.scale()).isEqualTo(2);
   }
 
