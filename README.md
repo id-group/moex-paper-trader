@@ -185,7 +185,8 @@ $env:EMULATOR_MARKETDATA_MODE = 'REPLAY'
 
 Параметры HTTP-клиентов — `emulator.algoapi.*` и `emulator.iss.*` (таймауты, ретраи,
 режим/рынок/борда по умолчанию); торговый календарь (кэш в БД) — `emulator.marketdata.calendar-*`
-и `session-open/session-close` (окно основной сессии, МСК). Выбор и сборка провайдера по режиму —
+и `session-open/session-close` (fallback-окно полного торгового дня TQBR, МСК; границы дня
+берутся из минутных свечей ISS). Выбор и сборка провайдера по режиму —
 `MarketDataConfiguration`; в REPLAY виртуальный таймлайн продвигает `ReplayClockAdvancer`
 (`replay.tick-ms` × `replay.speed`).
 

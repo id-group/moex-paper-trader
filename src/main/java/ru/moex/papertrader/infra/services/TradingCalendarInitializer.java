@@ -18,7 +18,10 @@ import ru.moex.papertrader.core.marketdata.VirtualClock;
  * есть только у инициализации REPLAY), а статус сессии всегда определялся бы fallback-окном.
  *
  * <p>Диапазон — неделя назад от текущего момента: прошлые дни и вчера догружаются из истории ISS,
- * текущий день определяется по живым минутным свечам (см. {@link TradingCalendarService}).
+ * текущий день определяется по живым минутным свечам (см. {@link TradingCalendarService}). Границы
+ * сессии уже известных дней перезаписываются из данных биржи отдельно: {@code tradingDays()}
+ * пропущенные кэшем дни не обновляет, и записанные вслепую границы (fallback-окно или плановое
+ * закрытие) застыли бы навсегда — вне такого окна заявки не исполнялись бы.
  *
  * <p>В режиме REPLAY не работает: там часы — {@link VirtualClock}, а календарь строится из
  * записанных снапшотов. Ошибки источника не прерывают старт приложения.
@@ -31,8 +34,10 @@ public class TradingCalendarInitializer {
   /** Глубина дозагрузки прошлых дней при синхронизации. */
   private static final Duration PAST_WINDOW = Duration.ofDays(7);
 
-  /** Период повторной синхронизации, мс (6 часов). */
-  private static final long REFRESH_DELAY_MS = 6 * 60 * 60 * 1000L;
+  /**
+   * Период повторной синхронизации, мс (1 час: границы идущего дня обновляются без перезапуска).
+   */
+  private static final long REFRESH_DELAY_MS = 60 * 60 * 1000L;
 
   private final TradingCalendarService calendar;
   private final Clock clock;
@@ -51,6 +56,7 @@ public class TradingCalendarInitializer {
     Instant now = clock.instant();
     try {
       calendar.tradingDays(now.minus(PAST_WINDOW), now);
+      calendar.refreshLiveBounds(now);
     } catch (RuntimeException exception) {
       // Деградация некритична: статус сессии временно определит fallback-окно настроек.
       log.warn("Синхронизация торгового календаря не удалась: {}", exception.getMessage());

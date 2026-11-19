@@ -14,8 +14,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * <p>Умолчания: срок хранения снапшотов — 7 дней, календарь акций основного режима TQBR, базовый
  * адрес MOEX ISS — {@code https://iss.moex.com} (домен {@code iss.moex.ru} выведен из эксплуатации
- * и не разрешается), fallback-окно сессии — 10:00–18:50 по Москве (основное окно — из данных
- * биржи).
+ * и не разрешается), fallback-окно сессии — полный торговый день 07:00–23:50 по Москве (основное
+ * окно — из данных биржи).
  *
  * @param retentionDays срок хранения записанных снапшотов, дни
  * @param calendarEngine движок ISS для календаря ({@code stock})
@@ -49,8 +49,15 @@ public record MarketDataProperties(
   public static final String DEFAULT_ISS_BASE_URL = "https://iss.moex.com";
   public static final int DEFAULT_CONNECT_TIMEOUT_MS = 2_000;
   public static final int DEFAULT_READ_TIMEOUT_MS = 5_000;
-  public static final LocalTime DEFAULT_SESSION_OPEN = LocalTime.of(10, 0);
-  public static final LocalTime DEFAULT_SESSION_CLOSE = LocalTime.of(18, 50);
+
+  /**
+   * Fallback-окно — полный торговый день TQBR по Москве (утренняя секция 07:00–09:00, основная
+   * 09:10–18:55, вечерняя 19:00–23:50). Сужение до основной секции (10:00–18:50) оставляло заявки
+   * неисполненными утром и вечером, когда день ещё не попал в кэш календаря.
+   */
+  public static final LocalTime DEFAULT_SESSION_OPEN = LocalTime.of(7, 0);
+
+  public static final LocalTime DEFAULT_SESSION_CLOSE = LocalTime.of(23, 50);
 
   public MarketDataProperties {
     retentionDays = retentionDays > 0 ? retentionDays : DEFAULT_RETENTION_DAYS;

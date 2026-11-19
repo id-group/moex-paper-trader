@@ -336,7 +336,7 @@ class ExecutionServiceImplTest {
   @Test
   void tickExecutesDayOrderWhenCalendarIsEmptyButTimeInsideFallbackWindow() {
     // Регресс E2E-07: в LIVE с пустым календарём торговая сессия определяется fallback-окном
-    // настроек (будний день 10:00–18:50 МСК), DAY-заявка не экспайрится на первом тике.
+    // настроек (будний день 07:00–23:50 МСК), DAY-заявка не экспайрится на первом тике.
     TradingCalendarRepository repository = mock(TradingCalendarRepository.class);
     TradingCalendarService emptyCalendar =
         new TradingCalendarService(repository, MarketDataProperties.defaults(), jsonMapper());

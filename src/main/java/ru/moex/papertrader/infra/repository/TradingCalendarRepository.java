@@ -33,7 +33,8 @@ public interface TradingCalendarRepository extends JpaRepository<TradingCalendar
 
   /**
    * Идемпотентно записывает день календаря. Повторная загрузка диапазона не создаёт дубликатов и
-   * обновляет окно сессии: прошлые дни не меняются, но перезапись безопасна.
+   * обновляет окно сессии: именно это позволяет {@code TradingCalendarService.refreshLiveBounds}
+   * заменять границы, записанные вслепую (fallback-окно настроек или плановое закрытие), биржевыми.
    */
   @Modifying(flushAutomatically = true)
   @Query(

@@ -31,6 +31,18 @@ class TradingCalendarInitializerTest {
   }
 
   @Test
+  void refreshesBoundsOfAlreadyCachedDays() {
+    // tradingDays() известные дни пропускает, поэтому границы, записанные вслепую (fallback-окно
+    // настроек или плановое закрытие идущего дня), перезаписываются из данных биржи отдельно.
+    when(clock.instant()).thenReturn(NOW);
+    TradingCalendarInitializer initializer = new TradingCalendarInitializer(calendar, clock);
+
+    initializer.synchronize();
+
+    verify(calendar).refreshLiveBounds(NOW);
+  }
+
+  @Test
   void virtualClockMeansReplayAndIsSkipped() {
     TradingCalendarInitializer initializer =
         new TradingCalendarInitializer(calendar, new VirtualClock(NOW));
@@ -46,6 +58,17 @@ class TradingCalendarInitializerTest {
     org.mockito.Mockito.doThrow(new IllegalStateException("БД недоступна"))
         .when(calendar)
         .tradingDays(any(), any());
+    TradingCalendarInitializer initializer = new TradingCalendarInitializer(calendar, clock);
+
+    initializer.synchronize(); // не бросает наружу
+  }
+
+  @Test
+  void failuresOfBoundsRefreshDoNotPropagate() {
+    when(clock.instant()).thenReturn(NOW);
+    org.mockito.Mockito.doThrow(new IllegalStateException("ISS недоступен"))
+        .when(calendar)
+        .refreshLiveBounds(any());
     TradingCalendarInitializer initializer = new TradingCalendarInitializer(calendar, clock);
 
     initializer.synchronize(); // не бросает наружу

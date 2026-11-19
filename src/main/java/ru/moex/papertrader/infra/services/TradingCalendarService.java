@@ -1,5 +1,6 @@
 package ru.moex.papertrader.infra.services;
 
+import java.net.URI;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,10 +45,12 @@ import tools.jackson.databind.ObjectMapper;
  * {board}/securities/{security}.json}.
  *
  * <p>Границы сессии дня — решение владельца (2026-11-02): берутся из данных биржи, а не из
- * конфигурации. Открытие — начало первой минутной свечи дня, закрытие — конец последней свечи
- * вечернего фрагмента (запрос с 18:00 по Москве; в сутках меньше 500 таких баров — лимит ISS). Если
- * биржа не отдала данные, используется fallback-окно настроек {@code session-open}/{@code
- * session-close}.
+ * конфигурации. Открытие — начало первой минутной свечи дня. Закрытие — конец последней свечи
+ * вечернего фрагмента (запрос с 18:00 по Москве; в сутках меньше 500 таких баров — лимит ISS), но
+ * только когда день уже закрылся: до планового закрытия вечерний фрагмент неполный, и по его
+ * последнему бару день сузился бы задолго до конца сессии. Для идущего дня закрытие плановое из
+ * {@code session-close}. Если биржа не отдала данные, используется fallback-окно настроек {@code
+ * session-open}/{@code session-close} — полный торговый день TQBR 07:00–23:50 МСК.
  *
  * <p>Кэш: если все даты диапазона уже есть в БД, HTTP не вызывается. Дни после последней даты с
  * опубликованной историей ISS не кэшируются как неторговые: история за текущий день появляется
@@ -77,6 +80,13 @@ public class TradingCalendarService implements TradingCalendar {
 
   /** Старт вечернего фрагмента для определения закрытия: основная сессия уже прошла. */
   private static final LocalTime CLOSE_CHUNK_START = LocalTime.of(18, 0);
+
+  /**
+   * Глубина периодической перезаписи границ, дни. Окно равно {@code TradingCalendarInitializer
+   * .PAST_WINDOW}: ремонт нужен всем дням, записанным вслепую (fallback-окно или плановое
+   * закрытие), а не только текущему.
+   */
+  private static final int BOUNDS_REFRESH_DAYS = 7;
 
   private static final DateTimeFormatter ISS_DATE_TIME =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -119,7 +129,7 @@ public class TradingCalendarService implements TradingCalendar {
     }
 
     boolean complete = dates.stream().allMatch(known::containsKey);
-    if (!complete && !synchronize(fromDate, toDate, known)) {
+    if (!complete && !synchronize(fromDate, toDate, to, known)) {
       // Сеть недоступна: отдаём то, что уже есть в БД, не роняя вызов.
       return cached.stream().map(mapper::toDomain).toList();
     }
@@ -238,8 +248,12 @@ public class TradingCalendarService implements TradingCalendar {
   /**
    * Догружает диапазон из ISS и идемпотентно пишет дни в БД. Возвращает {@code false}, если
    * источник недоступен: вызывающий отдаёт частичный результат из кэша.
+   *
+   * <p>{@code asOf} — момент оценки состояния дня: день, закрытие которого ещё не наступило, не
+   * может получить фактическую границу закрытия.
    */
-  private boolean synchronize(LocalDate from, LocalDate to, Map<LocalDate, TradingDay> known) {
+  private boolean synchronize(
+      LocalDate from, LocalDate to, Instant asOf, Map<LocalDate, TradingDay> known) {
     Optional<Set<LocalDate>> fetched = fetchTradingDates(from, to);
     if (fetched.isEmpty()) {
       return false;
@@ -260,10 +274,10 @@ public class TradingCalendarService implements TradingCalendar {
         // История ISS не знает день (обычно текущий — она публикуется только после закрытия).
         // Спрашиваем живые минутные свечи: свечи есть — день торговый, кэшируем с границами
         // биржи; свечей нет — день не кэшируем, статус определит fallback-окно настроек.
-        cacheLiveDay(date, known);
+        cacheLiveDay(date, asOf, known);
         continue;
       }
-      TradingDay day = trading ? tradingDay(date) : new TradingDay(date, false, null, null);
+      TradingDay day = trading ? tradingDay(date, asOf) : new TradingDay(date, false, null, null);
       upsertDay(date, day);
       known.put(date, day);
     }
@@ -271,8 +285,8 @@ public class TradingCalendarService implements TradingCalendar {
   }
 
   /** Кэширует день как торговый, если по нему уже есть минутные свечи (торги идут). */
-  private void cacheLiveDay(LocalDate date, Map<LocalDate, TradingDay> known) {
-    Optional<SessionBounds> bounds = fetchSessionBounds(date);
+  private void cacheLiveDay(LocalDate date, Instant asOf, Map<LocalDate, TradingDay> known) {
+    Optional<SessionBounds> bounds = fetchSessionBounds(date, asOf);
     if (bounds.isEmpty()) {
       return;
     }
@@ -293,8 +307,8 @@ public class TradingCalendarService implements TradingCalendar {
   }
 
   /** Торговый день с окном сессии из данных биржи; при недоступности — fallback на настройки. */
-  private TradingDay tradingDay(LocalDate date) {
-    Optional<SessionBounds> bounds = fetchSessionBounds(date);
+  private TradingDay tradingDay(LocalDate date, Instant asOf) {
+    Optional<SessionBounds> bounds = fetchSessionBounds(date, asOf);
     if (bounds.isPresent()) {
       return new TradingDay(date, true, bounds.get().openUtc(), bounds.get().closeUtc());
     }
@@ -305,24 +319,126 @@ public class TradingCalendarService implements TradingCalendar {
   }
 
   /**
-   * Границы сессии дня из минутных свечей биржи: открытие — начало первого бара дня, закрытие —
-   * конец последнего бара вечернего фрагмента. Пусто, если данные биржи недоступны или ответ вышел
-   * за пределы запрошенного дня: в прогонах ISS возвращал бары с датами за пределами окна (close
-   * уезжал на месяц вперёд), и без проверки некорректная граница закреплялась в кэше навсегда,
-   * отключая экспирацию DAY.
+   * Границы сессии дня из минутных свечей биржи: открытие — начало первого бара дня; закрытие —
+   * конец последнего бара вечернего фрагмента, но только когда день уже закрылся ({@code at} не
+   * раньше планового закрытия). Пока день идёт, вечерний фрагмент неполный и по его последнему бару
+   * день сузился бы задолго до реального конца сессии (заявки встали бы вечером), поэтому закрытие
+   * берётся плановым из {@code session-close}.
+   *
+   * <p>Пусто, если биржа не отдала открывающий бар или ответ вышел за пределы запрошенного дня: в
+   * прогонах ISS возвращал бары с датами за пределами окна (close уезжал на месяц вперёд), и без
+   * проверки некорректная граница закреплялась в кэше навсегда, отключая экспирацию DAY. Одна из
+   * причин такого ответа — испорченный {@code from} (двойное percent-encoding, см. {@link
+   * #get(URI)}): ISS не распознаёт дату и отдаёт бары чужого дня.
    */
-  private Optional<SessionBounds> fetchSessionBounds(LocalDate date) {
+  private Optional<SessionBounds> fetchSessionBounds(LocalDate date, Instant at) {
+    return fetchCandleBounds(date)
+        .flatMap(
+            candles ->
+                Optional.ofNullable(closeOf(date, at, candles, null))
+                    .filter(close -> boundsWithinDay(date, candles.openUtc(), close))
+                    .map(close -> new SessionBounds(candles.openUtc(), close)));
+  }
+
+  /**
+   * Закрытие дня: фактический конец вечерних свечей, если день уже закрылся ({@code at} не раньше
+   * планового закрытия); иначе — плановое из настроек, расширенное до уже закэшированного.
+   *
+   * <p>Расширение до закэшированного нужно сбою источника: он не должен сужать реальный конец дня.
+   * Плановое закрытие приоритетнее закэшированного fallback-окна, иначе идущий день оставался бы
+   * запертым в узком окне настроек, найденном дефекте.
+   */
+  private Instant closeOf(LocalDate date, Instant at, CandleBounds candles, TradingDay cached) {
+    Instant planned = plannedClose(date);
+    if (candles.eveningCloseUtc() != null && !at.isBefore(planned)) {
+      return candles.eveningCloseUtc();
+    }
+    return widen(planned, cached);
+  }
+
+  /**
+   * Плановое закрытие, расширенное до уже закэшированного: сбой источника не должен сужать день.
+   */
+  private static Instant widen(Instant planned, TradingDay cached) {
+    Instant cachedClose = cached == null ? null : cached.closeUtc();
+    return cachedClose != null && cachedClose.isAfter(planned) ? cachedClose : planned;
+  }
+
+  /**
+   * Периодическая перезапись границ сессии недельного окна по данным биржи.
+   *
+   * <p>Смысл: {@link #tradingDays(Instant, Instant)} пропускает дни, уже присутствующие в кэше (при
+   * полном кэше HTTP не вызывается вовсе), поэтому границы, записанные вслепую — из fallback-окна
+   * настроек или плановым закрытием, — застыли бы навсегда. Заявка DAY экспирировалась бы не по
+   * биржевой границе, а вне fallback-окна вообще не исполнялась бы (найденный дефект).
+   *
+   * <p>Ничего не пишется, если биржа не отдала открывающий бар дня: сбой источника не должен ни
+   * сужать, ни расширять уже зафиксированный день.
+   *
+   * <p>Только для LIVE/RECORD: вызывающий ({@code TradingCalendarInitializer}) пропускает REPLAY,
+   * где календарь строится из записанных снапшотов и сеть не используется.
+   */
+  @Transactional
+  public void refreshLiveBounds(Instant at) {
+    Objects.requireNonNull(at, "at");
+    LocalDate toDate = at.atZone(MOSCOW).toLocalDate();
+    for (LocalDate date = toDate.minusDays(BOUNDS_REFRESH_DAYS);
+        !date.isAfter(toDate);
+        date = date.plusDays(1)) {
+      refreshBounds(date, at);
+    }
+  }
+
+  /** Перезаписывает границы одного дня, если биржа отдала их отличными от закэшированных. */
+  private void refreshBounds(LocalDate date, Instant at) {
+    TradingDay cached = findDay(date).map(mapper::toDomain).orElse(null);
+    if (cached != null && !cached.trading()) {
+      return; // неторговый день календаря: границ не бывает
+    }
+    Optional<CandleBounds> candles = fetchCandleBounds(date);
+    if (candles.isEmpty()) {
+      return;
+    }
+    Instant openUtc = candles.get().openUtc();
+    Instant closeUtc = closeOf(date, at, candles.get(), cached);
+    if (!boundsWithinDay(date, openUtc, closeUtc)
+        || (cached != null
+            && openUtc.equals(cached.openUtc())
+            && closeUtc.equals(cached.closeUtc()))) {
+      return; // некорректные границы или уже закэшированы без изменений
+    }
+    upsertDay(date, new TradingDay(date, true, openUtc, closeUtc));
+    log.info("Границы сессии {} обновлены из биржи: {} – {}", date, openUtc, closeUtc);
+  }
+
+  /**
+   * Открытие и (возможное) вечернее закрытие дня из минутных свечей; пусто, если дня нет в свечах
+   * или вечерний хвост вышел за его пределы.
+   *
+   * <p>Запрос вечернего фрагмента делается даже без открывающего бара: число обращений к ISS на
+   * день стабильно (два) и закреплено тестами календаря, а экономия одного пустого запроса не стоит
+   * разрыва этого контракта.
+   */
+  private Optional<CandleBounds> fetchCandleBounds(LocalDate date) {
     try {
       Instant openUtc = firstMinuteBarBegin(date);
-      Instant closeUtc = lastMinuteBarEnd(date);
-      if (openUtc == null || closeUtc == null || !boundsWithinDay(date, openUtc, closeUtc)) {
+      Instant eveningCloseUtc = lastMinuteBarEnd(date);
+      if (openUtc == null) {
         return Optional.empty();
       }
-      return Optional.of(new SessionBounds(openUtc, closeUtc));
+      if (eveningCloseUtc != null && !boundsWithinDay(date, openUtc, eveningCloseUtc)) {
+        return Optional.empty();
+      }
+      return Optional.of(new CandleBounds(openUtc, eveningCloseUtc));
     } catch (RestClientException | JacksonException | AlgoApiException exception) {
       log.error("Не удалось получить границы сессии {} из ISS: {}", date, exception.getMessage());
       return Optional.empty();
     }
+  }
+
+  /** Плановое закрытие торгового дня по Москве из настроек ({@code session-close}) в UTC. */
+  private Instant plannedClose(LocalDate date) {
+    return date.atTime(properties.sessionClose()).atZone(MOSCOW).toInstant();
   }
 
   /**
@@ -353,33 +469,58 @@ public class TradingCalendarService implements TradingCalendar {
 
   /** Минутные свечи эталонного инструмента; {@code from} — дата либо дата-время по Москве. */
   private TableReader minuteCandles(String from, LocalDate date) {
-    String uri =
-        UriComponentsBuilder.fromUriString(properties.issBaseUrl())
-            .pathSegment(
-                "iss",
-                "engines",
-                properties.calendarEngine(),
-                "markets",
-                properties.calendarMarket(),
-                "boards",
-                properties.calendarBoard(),
-                "securities",
-                properties.calendarSecurity(),
-                "candles.json")
-            .queryParam("interval", "1")
-            .queryParam("from", from)
-            .queryParam("till", date.toString())
-            .queryParam("iss.meta", "off")
-            .toUriString();
-    String body = restClient.get().uri(uri).retrieve().body(String.class);
-    return TableReader.of(objectMapper.readTree(body), "candles");
+    URI uri = candlesUri(from, date);
+    String body = get(uri);
+    TableReader candles = TableReader.of(objectMapper.readTree(body), "candles");
+    // Пустой ответ при живых торгах означает испорченный запрос (см. get(URI)), а не выходной.
+    log.debug("Минутные свечи {}: {} строк ({})", date, candles.size(), uri);
+    return candles;
+  }
+
+  /**
+   * GET ISS по готовому {@link URI}. Строка в {@code RestClient.uri(String)} трактуется как
+   * URI-шаблон и кодируется повторно: {@code from=2026-11-18 18:00:00} превращается в {@code
+   * from=...%252018:00:00}, биржа дату не распознаёт и отдаёт бары чужого дня (замерено на живом
+   * ISS). Поэтому URI собирается с одним {@code encode()} и передаётся объектом.
+   */
+  private String get(URI uri) {
+    return restClient.get().uri(uri).retrieve().body(String.class);
+  }
+
+  /** Запрос минутных свечей дня: {@code from} — дата (открытие) или дата-время 18:00 (хвост). */
+  private URI candlesUri(String from, LocalDate date) {
+    return UriComponentsBuilder.fromUriString(properties.issBaseUrl())
+        .pathSegment(
+            "iss",
+            "engines",
+            properties.calendarEngine(),
+            "markets",
+            properties.calendarMarket(),
+            "boards",
+            properties.calendarBoard(),
+            "securities",
+            properties.calendarSecurity(),
+            "candles.json")
+        .queryParam("interval", "1")
+        .queryParam("from", from)
+        .queryParam("till", date.toString())
+        .queryParam("iss.meta", "off")
+        .build()
+        .encode()
+        .toUri();
   }
 
   /** Границы торговой сессии дня (UTC). */
   private record SessionBounds(Instant openUtc, Instant closeUtc) {}
 
+  /**
+   * Границы, отданные минутными свечами дня: {@code openUtc} — всегда известно, {@code
+   * eveningCloseUtc} — {@code null}, пока вечернего фрагмента торгов нет (день идёт).
+   */
+  private record CandleBounds(Instant openUtc, Instant eveningCloseUtc) {}
+
   private Optional<Set<LocalDate>> fetchTradingDates(LocalDate from, LocalDate to) {
-    String uri =
+    URI uri =
         UriComponentsBuilder.fromUriString(properties.issBaseUrl())
             .pathSegment(
                 "iss",
@@ -395,9 +536,11 @@ public class TradingCalendarService implements TradingCalendar {
             .queryParam("from", from.toString())
             .queryParam("to", to.toString())
             .queryParam("iss.meta", "off")
-            .toUriString();
+            .build()
+            .encode()
+            .toUri();
     try {
-      String body = restClient.get().uri(uri).retrieve().body(String.class);
+      String body = get(uri);
       return Optional.of(parseTradedDates(body));
     } catch (RestClientException | JacksonException exception) {
       log.error(
