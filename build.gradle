@@ -7,11 +7,13 @@ plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.dependency.management)
     alias(libs.plugins.spotless)
+    // 3.5.4 — первая стабильная ветка, совместимая с Gradle 9 (Convention API удалён в 9.0).
+    id 'com.google.cloud.tools.jib' version '3.5.4'
     id 'jacoco'
 }
 
 group = 'ru.moex.papertrader'
-version = '0.1.0-SNAPSHOT'
+version = '1.0.0'
 
 java {
     // Инструментарий Java 25 — Gradle сам найдёт подходящий JDK (в т.ч. в ~/.jdks).
@@ -112,4 +114,21 @@ tasks.named('jacocoTestCoverageVerification') {
 
 tasks.named('check') {
     dependsOn tasks.named('jacocoTestCoverageVerification')
+}
+
+jib {
+    from {
+        image = 'bellsoft/liberica-openjdk-alpine:25'
+    }
+    to {
+        image = "iportfolio.cr.cloud.ru/${rootProject.name}"
+        auth {
+            username = findProperty("registryUsername") ?: System.getenv("SBER_CLOUD_REG_USERNAME")
+            password = findProperty("registryPassword") ?: System.getenv("SBER_CLOUD_REG_PASSWORD")
+        }
+        tags = ["${project.version}", "latest"]
+    }
+    container {
+        mainClass = 'ru.moex.papertrader.BrokerEmulatorApplication'
+    }
 }
